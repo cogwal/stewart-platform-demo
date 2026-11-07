@@ -19,7 +19,8 @@ and the bench's candump logs replayed through the master logic give the same dec
 | Switchable assumptions where the manual is silent | `sim/drive/core.py` `Quirks` | `unwired_switches_trip`, `stall_faults`, `reject_targets_outside_limits`, `current_limit`, `overtemp_after_s` |
 | NMT, heartbeat producer/consumer (1016h/1029h), SDO server, PDO mapping rules, SYNC/TPDO timing, EMCY frames | `sim/drive/can_node.py` (`CanDrive`) | 1 ms tick thread per drive |
 | Power-on object values | EDS defaults + `contract/defaults-overlay.yaml` (via `sim/od_store.py`) | the overlay is the place for measured power-on values |
-| The actuator: stroke, end stops, lost steps, jam | `sim/drive/s20.py` | no force/speed model yet |
+| The actuator: stroke, end stops, lost steps, jam, force limit | `sim/drive/s20.py` | force limit with linear speed derating, provisional (`config/platform.yaml` `simulation:`) |
+| Payload → leg forces | `sim/platform_physics.py` + physics thread in `sim/drive/__main__.py` | quasi-static, only with 6 drives and a payload |
 | Fault injection | `sim/drive/__main__.py` (UDP :5008) | power_cycle, power_off, enn, jam, mute_hb, slip |
 
 ## Procedure
@@ -42,8 +43,9 @@ and the bench's candump logs replayed through the master logic give the same dec
      linear interpolation over 60C2h), whether csp targets act on arrival or on SYNC, quick-stop distance.
    - **Unwired switches** with 2005h = 0x13: does anything trip (`Quirks.unwired_switches_trip`)?
    - **Overcurrent / overtemp** behaviour vs `Quirks.current_limit` and `overtemp_after_s`.
-   - **S20 model**: speed/force limits and missed steps under load (`s20.py` has none). Only worth it if the bench shows
-     missed steps within the planned speed range.
+   - **S20 model**: the force limit (`s20_max_force_n`, 60 N provisional) and its speed derating are guesses. Measure the
+     force at which steps are lost at 2, 5 and 10 mm/s (weights on the bench, or a spring scale) and fit them. Also
+     whether stallGuard sees the overload before steps are lost (the model treats an overload like a stall).
 3. Make the emulator match, keep the old behaviour available as a `Quirks` flag if it was a deliberate assumption.
 4. Update tests: `tests/sim/test_drive_core.py` (core behaviour), the end-to-end tests if the master's view changes.
    The C master's fake drive (`master/tests/fake_bus.c`) is intentionally simple; change it only if a master decision

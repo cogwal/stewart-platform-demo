@@ -247,6 +247,8 @@ Each slice ends with something that runs and is demonstrated. **⇉** marks slic
 - Web view: 3D canvas (no external libraries, works offline), platform from bus FK and from simulator truth (lost steps
   visible), commanded pose; inputs: pose sliders, virtual joystick, IMU sliders or the device's orientation sensor, demo,
   per-leg sliders; legs table; fault injection.
+- Emulator force model: payload → static leg forces (`sim/platform_physics.py`), S20 force limit with speed derating
+  (provisional) → steps lost under overload. Off unless a payload is set (`SIM_PAYLOAD_KG`).
 - To do with the CAD: real joints and closed length, joint angle limits in the workspace check, meshes in the view.
 
 ### Phase 3: ECU

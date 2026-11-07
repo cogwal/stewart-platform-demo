@@ -17,6 +17,10 @@ platform recovers from e-stops and drive resets without an engineer.
 - PC: all of it in the browser (`make sim`), including a virtual joystick, IMU sliders and the phone's orientation
   sensor as IMU (`deviceorientation`; on iOS this needs https).
 
+- Payload check in the simulation: `SIM_PAYLOAD_KG=2 make sim` gives every leg its static force (shown in the legs
+  table); legs beyond the S20 force limit skip steps. Use it to check the fair payload over the workspace once the
+  force limit is measured (sim-tuning.md).
+
 ## Open questions (plan.md "Still open"; ask the user first)
 1. What the hard e-stop cuts (drive power, ECU power, both). Decides the recovery flow: drive power cut = all drives
    reboot = automatic re-home after release (needs a decision: automatic, or operator button?).
