@@ -162,8 +162,8 @@ Each slice ends with something that runs and is demonstrated. **⇉** marks slic
 - Lesson: on a first run the CANopenNode storage files don't exist yet. That raises EMCY 5000h (non-volatile memory) and blocks
   NMT start until parameters are saved once (1010h). Our master will need a defined first-boot behavior for this, and so
   will the ECU port.
-- CI (`.github/workflows/ci.yml`): builds the image and runs the same check if the runner can provide `vcan`. Otherwise it skips the check
-  (optional, by decision).
+- CI (`.github/workflows/ci.yml`): builds the image and runs the same check. **`vcan` works on GitHub's ubuntu-24.04 runners**
+  (first run passed 2026-11-07), so CAN tests run in CI on every push. If a runner ever lacks `vcan`, the check is skipped, not failed.
 
 **S1: Contract v0, single drive**
 - `contract/drive-contract.yaml` + `.md` from the draft above, with node IDs as parameters. EDS and defaults overlay committed.
