@@ -303,5 +303,7 @@ class CanDrive:
                 "counter": self.store.get(0x6064),
                 "rod_mm": round(self.plant.position_mm, 4),
                 "stalled": self.plant.stalled,
+                "force_n": round(self.plant.load_n, 2),
+                "overloaded": self.plant.overloaded,
             }
 

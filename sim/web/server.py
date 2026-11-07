@@ -205,6 +205,8 @@ async def make_app(iface: str, nodes: list[int], record: Path | None = None) -> 
                 t = by_node.get(d["node"])
                 d["truth_mm"] = t["rod_mm"] if t else None
                 d["stalled"] = t["stalled"] if t else None
+                d["force_n"] = t.get("force_n") if t else None
+                d["overloaded"] = t.get("overloaded") if t else None
         return {
             "type": "state",
             "drives": drives,

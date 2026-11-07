@@ -118,7 +118,7 @@
     <section class="panel" style="grid-column: 1 / -1">
       <h2>Legs</h2>
       <table>
-        <thead><tr><th>Node</th><th>NMT</th><th>CiA 402</th><th>Master</th><th>Bus mm</th><th>Truth mm</th><th>Lost</th><th>Target</th><th style="width:30%">Stroke</th></tr></thead>
+        <thead><tr><th>Node</th><th>NMT</th><th>CiA 402</th><th>Master</th><th>Bus mm</th><th>Truth mm</th><th>Lost</th><th>Target</th><th>Force</th><th style="width:28%">Stroke</th></tr></thead>
         <tbody id="legs"></tbody>
       </table>
     </section>
@@ -377,6 +377,7 @@ function render() {
       <td>${fmt(d.position_mm)}</td><td>${fmt(d.truth_mm)}${d.stalled ? ' <span class="warnc">stall</span>' : ""}</td>
       <td class="${lost != null && Math.abs(lost) > 0.2 ? "bad" : "muted"}">${lost == null ? "–" : lost.toFixed(2)}</td>
       <td>${fmt(ml.x_mm ?? ml.target_mm)}</td>
+      <td class="${d.overloaded ? "bad" : "muted"}">${d.force_n != null && d.force_n !== 0 ? d.force_n.toFixed(1) + " N" : "–"}</td>
       <td><div class="bar"><i style="width:${pct(d.position_mm)}%"></i>${d.truth_mm != null ? `<b style="left:${pct(d.truth_mm)}%"></b>` : ""}</div></td></tr>`;
   }).join("");
 

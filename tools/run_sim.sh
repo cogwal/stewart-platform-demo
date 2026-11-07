@@ -10,6 +10,7 @@
 #                     none = no master here (the ECU or another PC is the master: HIL)
 #   SIM_ROD_MM=37     rod position at power-up (unknown to the drives); legs get +3 mm each
 #   SIM_NO_DRIVES=1   don't start the emulator (real drives on the bus, e.g. can0 on the bench)
+#   SIM_PAYLOAD_KG=2  payload for the emulator's force model (overrides config/platform.yaml simulation:)
 #   SIM_RECORD=file   record CAN frames, master status, truth and operator input (JSON lines)
 set -euo pipefail
 

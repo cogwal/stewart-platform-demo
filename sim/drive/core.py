@@ -440,7 +440,7 @@ class DriveCore:
             self._stall_time = 0.0
             return
         self.position += delta_counts
-        self.plant.move(delta_counts / self.counts_per_mm)
+        self.plant.move(delta_counts / self.counts_per_mm, dt)
         self._stallguard(dt)
 
     def _stallguard(self, dt: float) -> None:

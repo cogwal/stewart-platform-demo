@@ -7,10 +7,13 @@ UDP side channels (localhost, JSON), which no real drive has:
   control <- :5008  fault injection, e.g. {"type": "power_cycle", "node": 3}
             types: power_cycle, power_off, enn {"on": bool}, jam {"mm": float|null},
                    mute_hb {"s": float}, slip {"mm": float} (rod moves without the step counter)
+Force model: with six drives and a payload (config/platform.yaml simulation:, or SIM_PAYLOAD_KG) each leg gets its
+static axial force; legs pushing beyond the S20's force limit skip steps.
 """
 import argparse
 import json
 import logging
+import os
 import signal
 import socket
 import threading
@@ -20,6 +23,8 @@ import canopen
 
 from sim.drive.can_node import CanDrive
 from sim.drive.s20 import S20
+from sim.platform_physics import leg_forces
+from stewart import geometry as G
 
 log = logging.getLogger("sim.drive")
 
@@ -96,7 +101,32 @@ def main() -> None:
             except (ValueError, KeyError, TypeError) as e:
                 log.warning("bad control message: %s", e)
 
+    def physics():
+        """Payload -> leg forces from the real (truth) pose; only for a full platform with a payload configured."""
+        cfg = G.config().get("simulation", {})
+        payload = float(os.environ.get("SIM_PAYLOAD_KG", cfg.get("payload_kg", 0.0)))
+        mass = payload + cfg.get("platform_mass_kg", 0.0)
+        if len(drives) != 6 or payload <= 0:
+            return
+        geom = G.load()
+        legs = list(drives.values())
+        for d in legs:
+            d.plant.max_force_n = cfg.get("s20_max_force_n", 60.0)
+            d.plant.derate_at_10mm_s = cfg.get("s20_force_derate_at_10mm_s", 0.3)
+        log.info("force model on: %.2f kg incl. platform, S20 max %.0f N", mass, legs[0].plant.max_force_n)
+        guess = (0.0,) * 6
+        while not done.wait(0.02):
+            try:
+                guess = geom.forward([d.plant.position_mm for d in legs], guess, tol=1e-3, max_iter=10)
+                forces = leg_forces(geom, guess, mass, cfg.get("com_above_platform_mm", 20.0))
+            except ValueError:
+                guess = (0.0,) * 6
+                continue
+            for d, f in zip(legs, forces):
+                d.plant.load_n = f
+
     threading.Thread(target=publish_truth, daemon=True).start()
+    threading.Thread(target=physics, daemon=True).start()
     threading.Thread(target=control, daemon=True).start()
     signal.signal(signal.SIGTERM, lambda *_: done.set())
     signal.signal(signal.SIGINT, lambda *_: done.set())

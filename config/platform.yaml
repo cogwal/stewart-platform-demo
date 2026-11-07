@@ -71,3 +71,10 @@ supervisor:                   # unattended operation (fair). Open question: docs
   auto_recover_after_s: 0     # 0 = off (operator presses Resume / Home). > 0: after a stop or fault, wait this
                               # long, then Resume (homing kept) or Home (homing lost), if all drives are back
   auto_recover_max_tries: 3   # per incident; reset after 60 s of uninterrupted running
+
+simulation:                   # emulator only (the master doesn't use this)
+  payload_kg: 0.0             # 0 = no force model. Mass on the platform (fair payload: open question)
+  platform_mass_kg: 0.5       # top plate + joints (provisional)
+  com_above_platform_mm: 20.0 # centre of mass above the platform joint plane
+  s20_max_force_n: 60.0       # PROVISIONAL: datasheet force/speed curve unverified; 60 N = powered backdrive force
+  s20_force_derate_at_10mm_s: 0.3   # fraction of max force lost at 10 mm/s (linear in speed)
