@@ -3,6 +3,8 @@ CAN_IFACE ?= vcan0
 export CAN_IFACE
 COMPOSE   := docker compose
 RUN       := $(COMPOSE) run --rm dev
+# SIM_* settings from the host shell reach tools/run_sim.sh in the container
+RUN_SIM   := $(COMPOSE) run --rm -e SIM_LEGS -e SIM_MASTER -e SIM_NO_DRIVES -e SIM_ROD_MM -e SIM_RECORD dev
 
 .PHONY: help vcan image shell test gen ctest spmaster contract sim sim-leg s0-check clean
 
@@ -45,7 +47,7 @@ contract:
 	$(RUN) python -m contract 1
 
 sim:
-	$(RUN) tools/run_sim.sh $(CAN_IFACE)
+	$(RUN_SIM) tools/run_sim.sh $(CAN_IFACE)
 
 sim-leg:
 	$(RUN) env SIM_LEGS=1 SIM_MASTER=py tools/run_sim.sh $(CAN_IFACE)

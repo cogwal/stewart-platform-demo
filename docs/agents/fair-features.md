@@ -25,9 +25,9 @@ platform recovers from e-stops and drive resets without an engineer.
 4. Idle behaviour: hold, park, or demo motion after a timeout.
 
 ## Likely work
-- Auto-recovery policy: today a reboot or ENN needs Home (operator). For unattended use: re-home automatically after
-  a delay when all drives are back and ENN is closed, with a limit on retries. Implement as an option in `sp_core`
-  (`auto_home` after faults), with unit tests in `master/tests/test_core.c` and an e2e test.
+- Auto-recovery policy: the option exists (`supervisor:` in `config/platform.yaml`, off by default; unit test
+  `auto_recover`). Decide with the user whether to turn it on for the fair and with which delay; add an e2e test with
+  `SP_AUTO_RECOVER_S` and decide what happens when ENN stays open (today: homing fails, retries up to the limit).
 - Return to a safe pose before homing (lower slowly instead of a fast retract) if the platform carries a payload.
 - Input selection on the ECU (a switch or a button) → `sp_motion_set_source()`.
 - Status display (whatever the ECU has: LEDs, a small display, or a CAN message for a display node): phase, reason,

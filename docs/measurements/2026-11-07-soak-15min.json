@@ -1,0 +1,18 @@
+{
+  "minutes": 15.0,
+  "seed": 3,
+  "counts": {
+    "pose": 17,
+    "enn": 5,
+    "recoveries": 26,
+    "stop_resume": 7,
+    "demo": 7,
+    "joystick": 4,
+    "power_cycle": 6,
+    "slip": 6,
+    "mute_hb": 5,
+    "home": 2,
+    "jam": 2
+  },
+  "failures": []
+}

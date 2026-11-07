@@ -151,4 +151,8 @@ extern const float SP_PLATFORM_JOINTS[6][3];
 #define SP_DEMO_Z_MM                       10.0f
 #define SP_DEMO_PERIOD_S                   12.0f
 
+/* --- supervisor ------------------------------------------------------------------ */
+#define SP_AUTO_RECOVER_MS                 0  /* 0 = off */
+#define SP_AUTO_RECOVER_MAX_TRIES          3
+
 #endif /* SP_CONFIG_GEN_H */

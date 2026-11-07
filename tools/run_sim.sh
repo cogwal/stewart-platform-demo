@@ -10,6 +10,7 @@
 #                     none = no master here (the ECU or another PC is the master: HIL)
 #   SIM_ROD_MM=37     rod position at power-up (unknown to the drives); legs get +3 mm each
 #   SIM_NO_DRIVES=1   don't start the emulator (real drives on the bus, e.g. can0 on the bench)
+#   SIM_RECORD=file   record CAN frames, master status, truth and operator input (JSON lines)
 set -euo pipefail
 
 IFACE="${1:-${CAN_IFACE:-vcan0}}"
@@ -32,7 +33,7 @@ pids=()
 cleanup() { kill "${pids[@]}" 2>/dev/null || true; wait 2>/dev/null || true; }
 trap cleanup EXIT INT TERM
 
-python3 -m sim.web --iface "$IFACE" --nodes "$NODES" & pids+=($!)
+python3 -m sim.web --iface "$IFACE" --nodes "$NODES" ${SIM_RECORD:+--record "$SIM_RECORD"} & pids+=($!)
 if [ -z "${SIM_NO_DRIVES:-}" ]; then
     python3 -m sim.drive --iface "$IFACE" --nodes "$NODES" --rod-mm "$ROD_MM" --rod-spread-mm 3 & pids+=($!)
     sleep 0.8

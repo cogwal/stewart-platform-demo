@@ -28,6 +28,10 @@ sp_pose_t sp_kin_limit(const sp_pose_t* pose);
 /* z offset of the level, centred pose with every leg at the given stroke. */
 float sp_kin_level_z(float stroke_mm);
 
+/* Forward kinematics (Newton on the IK residual, numeric Jacobian). guess: start pose (e.g. the previous result).
+ * Returns false if it did not converge to 0.01 mm. */
+bool sp_kin_forward(const float strokes[6], const sp_pose_t* guess, sp_pose_t* out);
+
 float* sp_pose_axis(sp_pose_t* pose, int axis);
 
 #ifdef __cplusplus

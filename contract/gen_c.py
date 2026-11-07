@@ -175,6 +175,10 @@ def config_files(c: C.Contract, g: G.Geometry, pcfg: dict) -> tuple[str, str]:
     define("SP_DEMO_PITCH_DEG", f(demo["pitch_deg"]))
     define("SP_DEMO_Z_MM", f(demo["z_mm"]))
     define("SP_DEMO_PERIOD_S", f(demo["period_s"]))
+    sup = pcfg.get("supervisor", {})
+    d("\n/* --- supervisor ------------------------------------------------------------------ */\n")
+    define("SP_AUTO_RECOVER_MS", int(sup.get("auto_recover_after_s", 0) * 1000), "0 = off")
+    define("SP_AUTO_RECOVER_MAX_TRIES", int(sup.get("auto_recover_max_tries", 3)))
     d("\n#endif /* SP_CONFIG_GEN_H */\n")
 
     src = [HEADER, '#include "sp_config_gen.h"\n\n', "const sp_sdo_entry_t SP_STARTUP_SDO[SP_STARTUP_SDO_COUNT] = {\n"]

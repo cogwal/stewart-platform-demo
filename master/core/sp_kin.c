@@ -80,3 +80,57 @@ float sp_kin_level_z(float stroke_mm) {
     float len = SP_LEG_CLOSED_MM + stroke_mm;
     return sqrtf(len * len - dx * dx - dy * dy) + b[2] - q[2] - SP_NEUTRAL_Z_MM;
 }
+
+/* Gaussian elimination with partial pivoting, 6x6 in place. */
+static bool solve6(float a[6][6], float b[6]) {
+    for (int col = 0; col < 6; col++) {
+        int piv = col;
+        for (int r = col + 1; r < 6; r++) {
+            if (fabsf(a[r][col]) > fabsf(a[piv][col])) piv = r;
+        }
+        if (fabsf(a[piv][col]) < 1e-9f) return false;
+        if (piv != col) {
+            for (int k = 0; k < 6; k++) { float t = a[col][k]; a[col][k] = a[piv][k]; a[piv][k] = t; }
+            float t = b[col]; b[col] = b[piv]; b[piv] = t;
+        }
+        for (int r = col + 1; r < 6; r++) {
+            float f = a[r][col] / a[col][col];
+            for (int k = col; k < 6; k++) a[r][k] -= f * a[col][k];
+            b[r] -= f * b[col];
+        }
+    }
+    for (int r = 5; r >= 0; r--) {
+        float sum = b[r];
+        for (int k = r + 1; k < 6; k++) sum -= a[r][k] * b[k];
+        b[r] = sum / a[r][r];
+    }
+    return true;
+}
+
+bool sp_kin_forward(const float strokes[6], const sp_pose_t* guess, sp_pose_t* out) {
+    sp_pose_t p = guess ? *guess : (sp_pose_t){0};
+    for (int iter = 0; iter < 20; iter++) {
+        float s[6], res[6], jac[6][6], worst = 0.0f;
+        sp_kin_strokes(&p, s);
+        for (int i = 0; i < 6; i++) {
+            res[i] = s[i] - strokes[i];
+            if (fabsf(res[i]) > worst) worst = fabsf(res[i]);
+        }
+        if (worst < 0.01f) {
+            *out = p;
+            return true;
+        }
+        for (int k = 0; k < 6; k++) {
+            sp_pose_t q = p;
+            const float h = 0.01f;
+            *sp_pose_axis(&q, k) += h;
+            float s2[6];
+            sp_kin_strokes(&q, s2);
+            for (int i = 0; i < 6; i++) jac[i][k] = (s2[i] - s[i]) / h;
+        }
+        for (int i = 0; i < 6; i++) res[i] = -res[i];
+        if (!solve6(jac, res)) return false;
+        for (int k = 0; k < 6; k++) *sp_pose_axis(&p, k) += res[k];
+    }
+    return false;
+}

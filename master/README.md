@@ -46,6 +46,10 @@ input, commanded pose, per leg: boot state, NMT, statusword, actual/target mm, E
 | drive rebooted (boot-up / pre-operational while configured), EMCY stall / stop_all_rehome / config_error (ENN 5441h, overtemp, stall in operation, …), any failure during homing | all legs quick stop → `fault`, unhomed |
 | drive missing at boot | retried every 2 s, phase stays `boot` |
 
+Unattended option: `supervisor.auto_recover_after_s` in `config/platform.yaml` (or `SP_AUTO_RECOVER_S`): after a stop or
+fault the master waits that long, then resumes (homing kept) or homes, at most `auto_recover_max_tries` times per
+incident. Off by default.
+
 ## Design notes
 - One SDO client, shared by the legs in turn (65 writes × 6 drives ≈ 0.5 s on vcan).
 - The master's PDOs mirror the drives' PDOs: TPDO send requests are flags in CANopenNode, so the core never sends two

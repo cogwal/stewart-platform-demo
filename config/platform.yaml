@@ -66,3 +66,8 @@ inputs:
     pitch_deg: 6.0
     z_mm: 10.0
     period_s: 12.0
+
+supervisor:                   # unattended operation (fair). Open question: docs/agents/fair-features.md
+  auto_recover_after_s: 0     # 0 = off (operator presses Resume / Home). > 0: after a stop or fault, wait this
+                              # long, then Resume (homing kept) or Home (homing lost), if all drives are back
+  auto_recover_max_tries: 3   # per incident; reset after 60 s of uninterrupted running

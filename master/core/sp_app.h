@@ -29,6 +29,8 @@ typedef struct {
     sp_core_t core;
     sp_motion_t motion;
     sp_phase_t last_phase;
+    sp_pose_t pose_actual;   /* forward kinematics of the legs' bus positions (6 legs only) */
+    bool pose_actual_ok;
     uint32_t commands;
     uint32_t bad_commands;
 } sp_app_t;

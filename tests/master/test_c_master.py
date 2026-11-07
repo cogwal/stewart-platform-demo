@@ -43,8 +43,10 @@ def test_c_ik_matches_python(kin_dump):
     stdin = "\n".join(" ".join(f"{v:.6f}" for v in p) for p in poses) + "\n"
     out = subprocess.run([str(kin_dump)], input=stdin, capture_output=True, text=True, check=True).stdout
     for pose, line in zip(poses, out.splitlines()):
-        strokes_c, limited_c = ([float(v) for v in part.split()] for part in line.split("|"))
+        strokes_c, limited_c, fk = ([float(v) for v in part.split()] for part in line.split("|"))
         assert strokes_c == pytest.approx(g.strokes(pose), abs=5e-3)
         lo, hi = g.leg_range()
         assert all(lo - 0.01 <= s <= hi + 0.01 for s in g.strokes(tuple(limited_c)))
         assert limited_c == pytest.approx(g.limit(pose), abs=0.05, rel=0.01)
+        assert fk[0] == 1, f"C FK did not converge for {limited_c}"
+        assert fk[1:] == pytest.approx(limited_c, abs=0.02)  # FK(IK(p)) == p

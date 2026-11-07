@@ -664,6 +664,8 @@ void sp_core_init(sp_core_t* c, const sp_port_t* port, const uint8_t* node_ids, 
     c->n_legs = n_legs > SP_MAX_LEGS ? SP_MAX_LEGS : n_legs;
     c->master_node = master_node;
     c->auto_home = auto_home;
+    c->auto_recover_ms = SP_AUTO_RECOVER_MS;
+    c->auto_recover_max = SP_AUTO_RECOVER_MAX_TRIES;
     c->phase = SP_PH_BOOT;
     set_reason(c, "booting drives");
     for (uint8_t i = 0; i < SP_MAX_LEGS; i++) {
@@ -676,6 +678,29 @@ void sp_core_init(sp_core_t* c, const sp_port_t* port, const uint8_t* node_ids, 
 }
 
 sp_leg_in_t* sp_core_leg_in(sp_core_t* c, uint8_t leg) { return &c->legs[leg < SP_MAX_LEGS ? leg : 0].in; }
+
+/* Unattended operation: after a stop or fault, Resume (homing kept) or Home after a delay, a limited number
+ * of times per incident. Off unless auto_recover_ms > 0. */
+static void auto_recover(sp_core_t* c) {
+    if (c->phase != c->phase_seen) {
+        c->phase_seen = c->phase;
+        c->phase_t0 = c->now_ms;
+    }
+    if (c->phase == SP_PH_RUN && elapsed(c, c->phase_t0) > 60000u) {
+        c->recover_tries = 0;
+    }
+    if (c->auto_recover_ms == 0 || (c->phase != SP_PH_STOPPED && c->phase != SP_PH_FAULT) || c->home_requested ||
+        elapsed(c, c->phase_t0) < c->auto_recover_ms || c->recover_tries >= c->auto_recover_max || !all_ready(c)) {
+        return;
+    }
+    c->recover_tries++;
+    logf_(c, 1, "auto recovery %u/%u from %s (%s)", c->recover_tries, c->auto_recover_max, sp_phase_name(c->phase),
+          c->reason);
+    if (!(c->phase == SP_PH_STOPPED && sp_core_cmd_resume(c))) {
+        sp_core_cmd_home(c);
+    }
+    c->phase_t0 = c->now_ms;
+}
 
 void sp_core_step(sp_core_t* c, uint32_t dt_us) {
     c->us_acc += dt_us;
@@ -709,6 +734,7 @@ void sp_core_step(sp_core_t* c, uint32_t dt_us) {
         default:
             break;
     }
+    auto_recover(c);
     if (c->phase != SP_PH_HOMING && c->phase != SP_PH_RUN && c->phase != SP_PH_BOOT &&
         (c->home_requested || (c->auto_home && c->phase == SP_PH_IDLE))) {
         if (all_ready(c)) {

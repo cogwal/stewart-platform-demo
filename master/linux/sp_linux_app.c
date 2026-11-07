@@ -10,6 +10,7 @@
  *   SP_AUTO_HOME=1          boot and home at start
  *   SP_CMD_PORT=5005        UDP commands in (127.0.0.1)
  *   SP_STATUS_PORT=5006     UDP status out, every 100 ms
+ *   SP_AUTO_RECOVER_S=0     unattended recovery delay (default from config/platform.yaml supervisor:)
  */
 #include <arpa/inet.h>
 #include <errno.h>
@@ -96,6 +97,9 @@ CO_ReturnError_t app_programStart(uint16_t* bitRate, uint8_t* nodeId, uint32_t* 
     sp_co_port(&g_ad, &port, log_cb);
     sp_app_init(&g_app, &port, nodes, (uint8_t)legs, *nodeId, env_int("SP_AUTO_HOME", 1) != 0);
     sp_co_init(&g_ad, &g_app, nodes, (uint8_t)legs);
+    if (getenv("SP_AUTO_RECOVER_S")) {
+        g_app.core.auto_recover_ms = (uint32_t)(1000 * env_int("SP_AUTO_RECOVER_S", 0));
+    }
 
     g_cmd_fd = udp_socket((uint16_t)env_int("SP_CMD_PORT", 5005));
     g_status_fd = udp_socket(0);

@@ -270,6 +270,32 @@ static void test_demo_and_imu(void) {
     CHECK(sp_app_command(&F.app, "{\"type\":\"joystick\",\"x\":1,\"y\":0}") == 0);
 }
 
+static void test_auto_recover(void) {
+    boot_and_home(6);
+    CHECK(SP_AUTO_RECOVER_MS == 0 || F.app.core.auto_recover_ms == SP_AUTO_RECOVER_MS);
+    F.app.core.auto_recover_ms = 2000;
+    /* Heartbeat glitch: stopped with homing kept -> automatic Resume. */
+    F.d[1].hb_alive = false;
+    fake_run(&F, 20);
+    F.d[1].hb_alive = true;
+    CHECK(is_stopped(&F));
+    fake_run(&F, 1500);
+    CHECK(is_stopped(&F)); /* not before the delay */
+    CHECK(fake_run_until(&F, 3000, is_run));
+    CHECK(F.app.core.homed);
+    /* Reboot: homing lost -> automatic Home. */
+    fake_power_cycle(&F, 3);
+    fake_run(&F, 20);
+    CHECK(is_fault(&F));
+    CHECK(fake_run_until(&F, 45000, is_run));
+    CHECK(F.app.core.recover_tries == 2);
+    /* A drive that stays away: no endless retries. */
+    F.d[0].powered = false;
+    fake_run(&F, 60000);
+    CHECK(F.app.core.recover_tries <= F.app.core.auto_recover_max);
+    CHECK(!is_run(&F));
+}
+
 int main(void) {
     struct {
         const char* name;
@@ -291,6 +317,7 @@ int main(void) {
         {"sdo_hang_guard", test_sdo_hang_guard},
         {"status_json", test_status_json},
         {"demo_and_imu", test_demo_and_imu},
+        {"auto_recover", test_auto_recover},
     };
     for (unsigned i = 0; i < sizeof tests / sizeof tests[0]; i++) {
         int before = failures;

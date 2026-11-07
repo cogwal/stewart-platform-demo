@@ -108,6 +108,11 @@ void sp_app_on_sync(sp_app_t* app) {
         sp_core_set_leg_targets(&app->core, legs, 6);
     }
     sp_core_on_sync(&app->core);
+    if (app->core.n_legs == 6 && app->core.syncs % 10u == 0u) { /* 10 Hz is plenty for a display */
+        float actual[6];
+        for (uint8_t i = 0; i < 6; i++) actual[i] = sp_leg_actual_mm(&app->core, i);
+        app->pose_actual_ok = sp_kin_forward(actual, &app->pose_actual, &app->pose_actual);
+    }
 }
 
 int sp_app_command(sp_app_t* app, const char* json) {
@@ -222,10 +227,15 @@ int sp_app_status_json(const sp_app_t* app, char* buf, size_t n) {
         c->reason, c->homed ? "true" : "false");
     put(&o, "\"input\":\"%s\",\"demo\":%s,\"t_ms\":%lu,\"syncs\":%lu,", sp_source_name(m->source),
         m->demo_active ? "true" : "false", (unsigned long)c->now_ms, (unsigned long)c->syncs);
+    put(&o, "\"auto_recover_ms\":%lu,\"recover_tries\":%u,", (unsigned long)c->auto_recover_ms, c->recover_tries);
     put(&o, "\"setpoint_mm\":%.3f,\"target_mm\":%.3f,", (double)c->legs[0].target_mm, (double)c->legs[0].x_mm);
     put_pose(&o, "pose_target", &m->target);
     put(&o, ",");
     put_pose(&o, "pose", &m->pose);
+    if (app->pose_actual_ok) {
+        put(&o, ",");
+        put_pose(&o, "pose_actual", &app->pose_actual);
+    }
     put(&o, ",\"legs\":[");
     for (uint8_t i = 0; i < c->n_legs; i++) {
         const sp_leg_t* L = &c->legs[i];

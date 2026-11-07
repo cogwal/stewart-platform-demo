@@ -1,4 +1,4 @@
-# Drive contract v0.1 (single TMCM-1270)
+# Drive contract v0.1 (TMCM-1270, six drives)
 
 What the CANopen master and the drive emulator both build against. The machine-readable
 version is [`drive-contract.yaml`](drive-contract.yaml); the loader in [`__init__.py`](__init__.py)
@@ -25,7 +25,7 @@ Values marked *provisional* are placeholders until the bench measurements (S5).
 | Item | Value |
 |---|---|
 | Bit rate | 1 Mbit/s (drive default) |
-| Node IDs | master 127, drives 1 (v0), later 1–6. Drives ship as node 1, so IDs are set at commissioning |
+| Node IDs | master 127, drives 1–6 (leg i = node i+1, see config/platform.yaml). Drives ship as node 1, so IDs are set at commissioning (`tools/set_node_id.py`) |
 | SYNC | produced by the master, COB-ID 0x80, every **10 ms** |
 | Heartbeat | master and drives produce every 100 ms. Each side declares the other lost after 300 ms |
 
@@ -121,3 +121,10 @@ back on that SYNC with statusword and actual position. The master rate-limits ta
 - Profile and csp limits vs. the S20's real force and speed.
 - Do RPDOs act on SYNC (transmission type 1) or only on arrival?
 - csp tracking at 10 ms and tolerance to jitter in the master's timing.
+
+## Consumers
+- Drive emulator (`sim/drive/`): knows what a correctly configured drive looks like.
+- Python test master (`sim/master/`): reference implementation, single leg.
+- C master (`master/`): its configuration header and its CANopenNode object dictionary are generated from this
+  contract and `config/platform.yaml` by `python -m contract.gen_c` (`make gen`). The generated files are committed;
+  `tests/master/test_c_master.py` fails if they're out of date.

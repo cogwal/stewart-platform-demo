@@ -115,6 +115,12 @@ typedef struct {
     char reason[SP_REASON_LEN];
 
     sp_leg_t legs[SP_MAX_LEGS];
+    uint32_t auto_recover_ms;  /* 0 = off; default SP_AUTO_RECOVER_MS, may be changed after init */
+    uint8_t auto_recover_max;
+    uint8_t recover_tries;
+    uint32_t phase_t0;         /* when the current phase was entered */
+    sp_phase_t phase_seen;
+
     sp_emcy_log_t emcy[SP_EMCY_LOG_LEN];
     uint8_t emcy_n;     /* total received, wraps */
     uint32_t syncs;

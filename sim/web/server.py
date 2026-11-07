@@ -9,7 +9,7 @@ Operator input goes to the master's command port (:5005); fault injection to the
 Forward kinematics turns leg positions into platform poses twice: from the bus (what the master
 believes) and from the truth (where the platform really is). They differ when steps are lost.
 
-python -m sim.web [--iface vcan0] [--nodes 1,2,3,4,5,6] [--port 8080]
+python -m sim.web [--iface vcan0] [--nodes 1,2,3,4,5,6] [--port 8080] [--record build/session.jsonl]
 """
 from __future__ import annotations
 
@@ -19,6 +19,7 @@ import json
 import logging
 import socket
 import struct
+import threading
 import time
 from pathlib import Path
 
@@ -38,6 +39,22 @@ MASTER_COMMANDS = {"setpoint", "home", "stop", "resume", "pose", "joystick", "im
 FAULTS = {"power_cycle", "power_off", "enn", "jam", "mute_hb", "slip"}
 
 
+class Recorder:
+    """One JSON line per event, shared monotonic + wall timestamps: CAN frames, master status, simulator truth.
+    Replaces separate candump / status logs when the timing between them matters (bench, tuning, debugging)."""
+
+    def __init__(self, path: Path | None):
+        self.f = open(path, "a", buffering=1) if path else None
+        self.lock = threading.Lock()
+
+    def write(self, kind: str, payload) -> None:
+        if self.f is None:
+            return
+        line = json.dumps({"t": round(time.monotonic(), 6), "wall": round(time.time(), 6), "kind": kind, "data": payload})
+        with self.lock:
+            self.f.write(line + "\n")
+
+
 class Drive:
     def __init__(self, node: int):
         self.node = node
@@ -50,8 +67,9 @@ class Drive:
 class BusView(can.Listener):
     """Everything the bus tells us about the drives."""
 
-    def __init__(self, nodes: list[int], contract: C.Contract):
+    def __init__(self, nodes: list[int], contract: C.Contract, recorder: Recorder | None = None):
         self.c = contract
+        self.rec = recorder
         self.drives = {n: Drive(n) for n in nodes}
         self.emcy: list[dict] = []
         self.frames = 0
@@ -60,6 +78,8 @@ class BusView(can.Listener):
     def on_message_received(self, msg: can.Message) -> None:
         self.frames += 1
         cid, data = msg.arbitration_id, bytes(msg.data)
+        if self.rec is not None and self.rec.f is not None:
+            self.rec.write("can", {"id": cid, "data": data.hex(), "ts": msg.timestamp})
         if cid == 0x080 and not data:
             self.sync_times = (self.sync_times + [time.time()])[-50:]
             return
@@ -107,15 +127,18 @@ class BusView(can.Listener):
 
 
 class UdpInbox(asyncio.DatagramProtocol):
-    def __init__(self):
+    def __init__(self, kind: str = "", recorder: Recorder | None = None):
         self.latest: dict | None = None
         self.received = 0.0
+        self.kind, self.rec = kind, recorder
 
     def datagram_received(self, data, addr):
         try:
             self.latest, self.received = json.loads(data), time.time()
         except ValueError:
-            pass
+            return
+        if self.rec is not None:
+            self.rec.write(self.kind, self.latest)
 
     def fresh(self) -> dict | None:
         return self.latest if time.time() - self.received < 1.0 else None
@@ -140,14 +163,15 @@ class PoseTracker:
         return [round(v, 3) for v in pose]
 
 
-async def make_app(iface: str, nodes: list[int]) -> web.Application:
+async def make_app(iface: str, nodes: list[int], record: Path | None = None) -> web.Application:
     c = C.load()
     geom = G.load(contract=c)
-    view = BusView(nodes, c)
+    rec = Recorder(record)
+    view = BusView(nodes, c, rec)
     bus = can.Bus(interface="socketcan", channel=iface)
     notifier = can.Notifier(bus, [view])
     loop = asyncio.get_running_loop()
-    master_status, truth = UdpInbox(), UdpInbox()
+    master_status, truth = UdpInbox("master", rec), UdpInbox("truth", rec)
     await loop.create_datagram_endpoint(lambda: master_status, local_addr=("127.0.0.1", STATUS_PORT))
     await loop.create_datagram_endpoint(lambda: truth, local_addr=("127.0.0.1", TRUTH_PORT))
     out = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -215,6 +239,7 @@ async def make_app(iface: str, nodes: list[int]) -> web.Application:
                 except ValueError:
                     continue
                 kind = cmd.get("type")
+                rec.write("operator", cmd)
                 if kind in MASTER_COMMANDS:
                     out.sendto(json.dumps(cmd).encode(), MASTER_CMD)
                 elif kind == "fault" and cmd.get("fault") in FAULTS:
@@ -244,11 +269,12 @@ def main() -> None:
     ap.add_argument("--nodes", default=",".join(map(str, C.load().node_ids)))
     ap.add_argument("--host", default="0.0.0.0")
     ap.add_argument("--port", type=int, default=8080)
+    ap.add_argument("--record", type=Path, help="append CAN frames, master status, truth and operator input as JSON lines")
     args = ap.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(message)s")
     logging.getLogger("aiohttp.access").setLevel(logging.WARNING)
     nodes = [int(n) for n in args.nodes.split(",")]
-    web.run_app(make_app(args.iface, nodes), host=args.host, port=args.port, print=lambda *_: None)
+    web.run_app(make_app(args.iface, nodes, args.record), host=args.host, port=args.port, print=lambda *_: None)
 
 
 if __name__ == "__main__":

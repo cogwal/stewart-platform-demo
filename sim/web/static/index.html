@@ -143,6 +143,7 @@
       <dl>
         <dt>Implementation</dt><dd id="impl">–</dd>
         <dt>Homed</dt><dd id="homed">–</dd>
+        <dt>Auto recovery</dt><dd id="autorec">–</dd>
         <dt>Input</dt><dd id="input">–</dd>
         <dt>Pose command</dt><dd id="poseCmd">–</dd>
         <dt>Pose (bus FK)</dt><dd id="poseBus">–</dd>
@@ -356,6 +357,7 @@ function render() {
   $("sub").textContent = `${cfg.iface} · nodes ${cfg.nodes.join(",")} · contract ${cfg.contract_version} · geometry ${cfg.geometry_version}`;
   $("impl").textContent = m ? (m.impl === "c" ? "C core on CANopenNode (spmaster)" : "Python test master") : "–";
   $("homed").textContent = m ? (m.homed ? "yes" : "no") : "–";
+  $("autorec").textContent = m && m.auto_recover_ms != null ? (m.auto_recover_ms ? `after ${m.auto_recover_ms / 1000} s (tries ${m.recover_tries})` : "off (operator)") : "–";
   $("input").textContent = m && m.input ? m.input + (m.demo ? " (demo running)" : "") : "–";
   $("poseCmd").textContent = fmtPose(m && m.pose);
   $("poseBus").textContent = fmtPose(st.pose_bus);
