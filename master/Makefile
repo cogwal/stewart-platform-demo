@@ -10,7 +10,7 @@ WARN    := -Wall -Wextra -Wshadow -Wno-unused-parameter
 CORE_SRC := core/sp_core.c core/sp_kin.c core/sp_motion.c core/sp_app.c generated/sp_config_gen.c
 CORE_INC := -Icore -Igenerated
 
-.PHONY: all test spmaster clean
+.PHONY: all test portable-check spmaster clean
 
 all: test spmaster
 
@@ -24,7 +24,14 @@ $(BUILD)/kin_dump: $(CORE_SRC) tests/kin_dump.c core/*.h generated/*.h
 	@mkdir -p $(BUILD)
 	$(CC) -std=c99 -O1 -g $(WARN) -Werror $(CORE_INC) $(CORE_SRC) tests/kin_dump.c -lm -o $@
 
-test: $(BUILD)/test_core $(BUILD)/kin_dump
+# The core must stay clean for the ECU compiler: strict C99, no implicit float -> double (TC3xx FPU is single
+# precision), no lossy conversions.
+PORTABLE := -std=c99 -pedantic -Wall -Wextra -Wshadow -Wdouble-promotion -Wconversion -Wno-sign-conversion -Werror
+portable-check: $(CORE_SRC) core/*.h generated/*.h
+	@for f in $(CORE_SRC); do $(CC) $(PORTABLE) $(CORE_INC) -c $$f -o /dev/null || exit 1; done
+	@echo "portable check: ok"
+
+test: portable-check $(BUILD)/test_core $(BUILD)/kin_dump
 	$(BUILD)/test_core
 
 # ---- spmaster: the master on CANopenLinux ----------------------------------------------------

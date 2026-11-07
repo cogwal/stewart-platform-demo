@@ -9,7 +9,8 @@ notebook first, real drives later) and get the same behaviour: boot, home all le
 - `master/core/` – portable C99, the whole master logic: `sp_core.c` (drive bring-up, homing, csp streaming, EMCY
   classes, reboot/heartbeat handling), `sp_kin.c` (IK, workspace), `sp_motion.c` (inputs: pose, joystick, IMU, demo,
   legs → smoothed pose → leg targets), `sp_app.c` (glue, JSON commands/status for the PC; optional on the ECU).
-  Single-precision float only (TC3xx FPU). `__attribute__` use is guarded by `__GNUC__`.
+  Single-precision float only (TC3xx FPU). `__attribute__` use is guarded by `__GNUC__`. `make ctest` includes a
+  `portable-check`: the core compiles with `-std=c99 -pedantic -Wdouble-promotion -Wconversion -Werror`.
 - `master/generated/` – `OD.c/OD.h` (the master's CANopenNode object dictionary: SYNC producer 10 ms, HB consumer for
   6 drives, 1 SDO client, 12 RPDOs + 18 TPDOs mirroring the drives' PDOs, mapped to arrays 2110h..2123h) and
   `sp_config_gen.c/h` (contract constants, startup SDO table, EMCY table, geometry). Committed, so no Python is needed
