@@ -15,7 +15,7 @@ Hardware facts and their sources: [hardware-notes.md](hardware-notes.md).
 | Master stack | **CANopenNode, starting from [CANopenLinux](https://github.com/CANopenNode/CANopenLinux)** on the PC | The same stack runs on the ECU. Only the CAN driver and the main loop differ |
 | Master language | **C** for the portable core. C++ is allowed on the ECU side if useful | |
 | Drive emulator | **Python** ([python-canopen](https://github.com/christiansandberg/canopen) local node from the EDS plus a defaults overlay) | Fast to iterate and easy to script faults. A separate implementation from the master |
-| Dev environment | **Docker** (`.devcontainer/` + `docker compose`), Ubuntu image, `vcan` | Phase 1 on the **Mac** (simulation only). Phase 2 on an **Ubuntu notebook** with USB-CAN. **Docker Desktop on the Mac has no CAN support** (checked 2026-11-07: kernel `7.0.14-linuxkit`, `CONFIG_CAN is not set`), so Phase 1 needs a Docker runtime with an Ubuntu VM kernel (Colima/Lima, **to verify**). See [PC setups](#pc-setups) |
+| Dev environment | **Docker** (`.devcontainer/` + `docker compose`), Ubuntu image, `vcan` | Phase 1 on the **Mac** (simulation only). Phase 2 on an **Ubuntu notebook** with USB-CAN. **Docker Desktop on the Mac has no CAN support** (checked 2026-11-07: kernel `7.0.14-linuxkit`, `CONFIG_CAN is not set`), so Phase 1 uses **Colima** (Ubuntu 24.04 VM, kernel 6.8, `vcan` from `linux-modules-extra`): verified 2026-11-07, containers on host network exchange frames on `vcan0`. Setup: `scripts/mac/colima-vcan.sh`. See [PC setups](#pc-setups) |
 | USB-CAN | **PEAK PCAN-USB** | On Ubuntu the `peak_usb` driver turns it into a `can0` network interface. The container uses `--network host`, so no USB passthrough is needed |
 | Drive firmware | **fw 3.27, `TMCM-1270_V3.27.eds`** | Matches the included hex. Adds LSS |
 | Bus | **1 Mbit/s, csp cycle 10 ms**, master and 6 drives only (a logger may listen passively) | ~14 % bus load. 1 Mbit/s is the drive default. Set 60C2h = 10 ms |
@@ -56,7 +56,8 @@ that kernel, not on the container image.
 
 **Phase 1: Mac (simulation only).** macOS has no Linux kernel, so every Docker runtime on the Mac runs a hidden
 Linux VM and the containers use *its* kernel. Docker Desktop's VM kernel is built without CAN.
-A runtime whose VM runs a normal Ubuntu kernel (Colima/Lima) can load the `vcan` module.
+**Colima** runs an Ubuntu VM whose kernel can load `vcan` (verified). Run `scripts/mac/colima-vcan.sh`
+after each `colima start`: it installs `linux-modules-extra` if needed, loads `vcan` and brings up `vcan0`.
 
 ```
 ┌──────────────────────────── Mac (macOS) ──────────────────────────────┐
@@ -153,9 +154,8 @@ Each slice ends with something that runs and is demonstrated. **⇉** marks slic
 
 **S0: Docker dev environment and CAN check**
 - Ubuntu image: can-utils, build tools, CANopenLinux as a pinned submodule, Python env. A `vcan0` setup script.
-- Docker Desktop on the Mac: **no CAN in its kernel** (checked). Set up Colima (Lima VM, Ubuntu kernel) as the Docker
-  runtime and check that `modprobe vcan` works in the VM. If not, use a plain Ubuntu VM (Lima/UTM) with Docker inside.
-  Also check a cloud session and GitHub Actions.
+- Mac: **Colima** as the Docker runtime (Docker Desktop has no CAN). `vcan0` via `scripts/mac/colima-vcan.sh`, verified with
+  `candump`/`cansend` between two containers. Still to check: a cloud session and GitHub Actions.
 - Done when: the stock CANopenLinux demo heartbeats on `vcan0`, and `candump` plus a python-can script see it, on the Mac and in CI.
 
 **S1: Contract v0, single drive**
@@ -225,4 +225,4 @@ hardware + Ubuntu notebook ─► S5 (bench) ──► feeds S4/S6
 | 3 | Joystick mapping: which axes control which pose components? | S7 |
 | 4 | Idle behavior at the fair: hold the last pose, return to park, or a slow idle motion? | S9 |
 | 5 | S20 max force and speed (curves only in the PDF image), and the platform payload | S5, S7 |
-| 6 | ~~Does Docker Desktop on the Mac provide `vcan`?~~ **No** (CONFIG_CAN not set). Does Colima's VM? | S0 |
+| 6 | ~~Does Docker on the Mac provide `vcan`?~~ Docker Desktop: no. **Colima: yes** (verified, `scripts/mac/colima-vcan.sh`) | done |
