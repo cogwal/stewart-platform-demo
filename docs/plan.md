@@ -1,6 +1,8 @@
 # Plan: slices (draft)
 
-Status: first grill-me session done (2026-11-07). Answers recorded below. Remaining open points at the end.
+Status (2026-11-07, end of day): S0 to S4 done, S6 and S7 done in simulation (S7 with provisional geometry until the CAD
+arrives). Everything that needs hardware or files we don't have yet has a brief in [agents/](agents/README.md); the bench
+plan is [commissioning.md](commissioning.md). Remaining open points at the end.
 Hardware facts and their sources: [hardware-notes.md](hardware-notes.md).
 
 ## Decisions
@@ -9,7 +11,7 @@ Hardware facts and their sources: [hardware-notes.md](hardware-notes.md).
 |---|---|---|
 | ECU | **TTControl TTC2000 A2G series, Infineon AURIX TC3xx**, plain C/C++, **PXROS** RTOS, everything in **one task**, TTC's own CAN interface API (provided at porting time) | CANopenNode runs as-is. We write a `CO_driver` on the TTC CAN API |
 | Actuator | **Actuonix S20, 100 mm stroke** (`S20-100-38-B`) | Closed 174.8 mm, extended 274.8 mm hole to hole. 0 to 2,560,000 µsteps at 1/256 |
-| Platform CAD | exists and comes later | Start with **a single actuator in simulation**. Add the Stewart platform from the CAD afterwards |
+| Platform CAD | exists and comes later | Simulation runs with a **provisional geometry** (`config/platform.yaml`) until then |
 | ROS 2 | **Not used** | The ECU doesn't run it, the CAN bus is the only interface, and the web view doesn't need it |
 | [tmcl_ros2](https://github.com/analogdevicesinc/tmcl_ros2) | **Not used** | It speaks TMCL (TMCL firmware), not CANopen, and only supports ROS 2 Humble |
 | Master stack | **CANopenNode, starting from [CANopenLinux](https://github.com/CANopenNode/CANopenLinux)** on the PC | The same stack runs on the ECU. Only the CAN driver and the main loop differ |
@@ -196,44 +198,64 @@ Each slice ends with something that runs and is demonstrated. **⇉** marks slic
 - Observed once: both heartbeats lost within 0.7 s (VM pause on the Mac, most likely). A 30 s measurement shows normal jitter is small
   (heartbeat max 102 ms, SYNC max 12.6 ms). Recovery via Home works. → S4: decide on automatic recovery from a transient loss.
 
-**S2b ⇉ Master v0 (C)**
-- App core on CANopenLinux: boot-up handling, startup SDO list (non-blocking), heartbeat monitoring, CiA 402
-  enable, homing sequence, csp setpoint following with rate limits, and a setpoint input interface.
-- Unit tests of the core with a fake CAN and fake time.
+**S2b ⇉ Master v0 (C)** (done, 2026-11-07)
+- [`master/`](../master/README.md): portable C99 core (`sp_core`: bring-up, homing all legs together, csp, EMCY classes,
+  reboot / heartbeat loss / NMT stopped; `sp_kin`: IK + workspace; `sp_motion`: pose / joystick / IMU / demo / legs inputs,
+  pose smoothing, leg speed cap; `sp_app`: JSON commands and status). No OS calls, no malloc, time passed in.
+- The master's CANopenNode object dictionary is **generated from the contract** (`contract/gen_c.py`, `make gen`): SYNC
+  producer, HB consumer for 6 drives, one SDO client, 12 RPDOs and 18 TPDOs mirroring the drives' PDOs, mapped to
+  arrays 2110h..2123h. Generated files are committed (the ECU build needs no Python); a test fails if they're stale.
+- Unit tests with fake drives and fake time (`master/tests/test_core.c`, 16 tests, ASan/UBSan): boot, homing by EMCY and
+  by load polling, pose following within the leg speed limit, stop/resume, reboot, heartbeat loss, EMCY classes,
+  NMT stopped recovery, missing drive retry, SDO hang guard, status JSON, IMU/demo inputs.
 
-**S3: C master replaces the test master**
-- The slider now feeds the C master. Master and emulator run on `vcan0` and are tested end to end in CI. CAN log and
-  simulator state are recorded with a shared timestamp.
+**S3: C master replaces the test master** (done, 2026-11-07)
+- `spmaster` = CANopenLinux main loop (`CO_main_basic.c`, single thread, 1 ms) + the core through
+  `master/canopennode/sp_co_adapter.c` (shared with the ECU) + `master/linux/sp_linux_app.c` (UDP JSON interface,
+  same protocol as the Python test master).
+- `make sim` now runs 6 emulated drives + `spmaster` + the web view; `make sim-leg` keeps the single-leg setup with the
+  Python test master. End-to-end tests against 6 emulated drives on vcan0 run in CI (`tests/master/test_spmaster_e2e.py`).
+- Not done: a shared-timestamp recording of CAN log and simulator state (use `candump -L` + the truth port for now).
 
-**S4: Robustness, single drive**
-- Fault paths: missing or late boot-up, heartbeat loss in both directions (8130h), a drive reboot while operational,
-  a stall in operation, limits (FF01h), a wrong or missing current setting, fault reset. Bus-off is emulated as silence.
-- Scenario runner for scripted adversarial runs.
+**S4: Robustness** (done in simulation, 2026-11-07)
+- Fault paths covered by unit and end-to-end tests: missing boot-up (retry), heartbeat loss both ways (drive: 8130h +
+  NMT stopped → master stops, homing kept, Resume restarts NMT and fault-resets), drive reboot while operational (rehome),
+  stall in operation (jam injection → EMCY 3230h → rehome), ENN (5441h → rehome), SDO client hang.
+- Decision (S2a open point): a transient heartbeat loss does **not** auto-recover; the master stops and keeps homing,
+  the operator presses Resume. Unattended auto-recovery belongs to S9 ([agents/fair-features.md](agents/fair-features.md)).
+- Emulator fault injection port (:5008) and web buttons: power cycle, power off, ENN, jam, heartbeat mute, slip.
+- Tools: `tools/bus_stats.py` (timing, bus load: 14.5 % with 6 legs, SYNC 10.16 ms mean on CANopenLinux),
+  `tools/drive_probe.py` (drive characterisation + compare; emulator baseline in `docs/measurements/`).
+- Known limit: open loop. Lost steps without a stall EMCY (slip) are invisible to the master; only the simulator truth
+  shows them. Mitigation if the bench shows it matters: periodic re-homing or stallGuard monitoring in operation.
 
 ### Phase 2: Ubuntu notebook, real CAN
 
-**S5: Real drive on the bench**
-- Commissioning tool: fw 3.27 check or flash, node ID (2705h + 2706h, or LSS).
+**S5: Real drive on the bench** → step-by-step plan: [commissioning.md](commissioning.md)
+- Commissioning tools: `tools/drive_probe.py` (fw check, behaviour), `tools/set_node_id.py` (2705h + 2706h; or LSS).
 - PC master → PCAN-USB (`can0`) → one TMCM-1270 + S20. Measure the current and temperature, and tune stallGuard homing
   (threshold, speed, current, timeout).
 - Compare the real object dictionary with the emulator. Measure csp tracking at 10 ms and jitter tolerance, and whether
   RPDOs act on SYNC or on arrival. Tune the emulator.
 
-**S6: Six drives and coordinated motion**
-- Six emulated nodes, synchronized homing, coordinated csp trajectories, bus-load check.
+**S6: Six drives and coordinated motion** (done in simulation, 2026-11-07; real drives after S5)
+- Six emulated nodes, homing all together, coordinated csp from the pose, bus load 14.5 %.
 
-**S7: Stewart platform from CAD**
-- Geometry from the CAD. IK in C in the master core (pose setpoint → 6 leg setpoints), FK in Python for the view.
-  three.js scene with CAD meshes. Workspace limits.
-- Setpoint sources on the PC: slider or virtual joystick for the pose, simulated IMU orientation.
+**S7: Stewart platform** (done with **provisional geometry**, 2026-11-07; CAD: [agents/cad-geometry.md](agents/cad-geometry.md))
+- `config/platform.yaml` (6-6 layout sized for the S20-100, neutral at 50 mm stroke), `stewart/geometry.py` (Python IK/FK),
+  `master/core/sp_kin.c` (C IK, workspace limiting; cross-checked with Python on 200+ poses).
+- Web view: 3D canvas (no external libraries, works offline), platform from bus FK and from simulator truth (lost steps
+  visible), commanded pose; inputs: pose sliders, virtual joystick, IMU sliders or the device's orientation sensor, demo,
+  per-leg sliders; legs table; fault injection.
+- To do with the CAD: real joints and closed length, joint angle limits in the workspace check, meshes in the view.
 
 ### Phase 3: ECU
 
-**S8: ECU port**
-- `CO_driver` on the TTC CAN API, a PXROS single task calling the core's step, the same OD.
+**S8: ECU port** → brief: [agents/ecu-port.md](agents/ecu-port.md)
+- `CO_driver` on the TTC CAN API, a PXROS single task calling the core's step, the same OD and adapter.
 - Setpoint sources: analog joystick (ADC) and the IMU on the ECU. HIL: ECU → bus → simulator on the Ubuntu notebook.
 
-**S9: Real platform and fair hardening**
+**S9: Real platform and fair hardening** → brief: [agents/fair-features.md](agents/fair-features.md)
 - Power-up and homing flow, recovery after an e-stop, the operator input modes (joystick / IMU), status display,
   unattended behavior.
 
@@ -249,7 +271,8 @@ hardware + Ubuntu notebook ─► S5 (bench) ──► feeds S4/S6
 |---|---|---|
 | 1 | What exactly does the hard e-stop cut: drive 24 V, ECU power, or both? | S4 (reboot recovery), S9 |
 | 2 | How is the IMU connected to the ECU (its own CAN channel, SPI, …), and at what rate? | S7/S8 |
-| 3 | Joystick mapping: which axes control which pose components? | S7 |
-| 4 | Idle behavior at the fair: hold the last pose, return to park, or a slow idle motion? | S9 |
+| 3 | Joystick mapping: which axes control which pose components? (default now: x → roll, y → pitch) | S9 |
+| 4 | Idle behavior at the fair: hold the last pose, return to park, or a slow idle motion? (demo motion exists, off by default) | S9 |
 | 5 | S20 max force and speed (curves only in the PDF image), and the platform payload | S5, S7 |
+| 7 | Positive target = extend the rod? (nothing assumes otherwise; check on the bench) | S5 |
 | 6 | ~~Does Docker on the Mac provide `vcan`?~~ Docker Desktop: no. **Colima: yes** (verified, `scripts/mac/colima-vcan.sh`) | done |

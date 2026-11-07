@@ -6,7 +6,8 @@
 #
 # Environment:
 #   SIM_LEGS=6        6 = Stewart platform (nodes 1..6), 1 = single leg (node 1)
-#   SIM_MASTER=c      c = C master on CANopenLinux (spmaster), py = Python test master (single leg only)
+#   SIM_MASTER=c      c = C master on CANopenLinux (spmaster), py = Python test master (single leg only),
+#                     none = no master here (the ECU or another PC is the master: HIL)
 #   SIM_ROD_MM=37     rod position at power-up (unknown to the drives); legs get +3 mm each
 #   SIM_NO_DRIVES=1   don't start the emulator (real drives on the bus, e.g. can0 on the bench)
 set -euo pipefail
@@ -39,7 +40,7 @@ fi
 if [ "$MASTER" = c ]; then
     mkdir -p build/master-storage
     SP_LEGS="$LEGS" build/master/spmaster -i 127 -s build/master-storage/ "$IFACE" & pids+=($!)
-else
+elif [ "$MASTER" = py ]; then
     python3 -m sim.master --iface "$IFACE" --node 1 & pids+=($!)
 fi
 
