@@ -31,7 +31,7 @@ jobs:
             echo "available=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Tests (contract, drive core; end-to-end on vcan0 when available, otherwise skipped)
+      - name: Tests (contract, emulator, C master unit + portable check, kinematics; end-to-end + soak on vcan0 when available)
         run: docker compose run --rm dev pytest -rs
 
       - name: CANopenLinux demo check on vcan0
