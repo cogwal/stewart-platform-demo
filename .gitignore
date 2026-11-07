@@ -17,3 +17,6 @@ __pycache__/
 *.pyc
 .venv/
 venv/
+
+# Vendor archives (unpacked copies live in vendor/)
+*.zip
