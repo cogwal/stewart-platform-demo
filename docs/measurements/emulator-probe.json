@@ -1,0 +1,355 @@
+{
+  "node": 1,
+  "iface": "vcan0",
+  "contract": "0.1.0",
+  "t": 1794091916.7482195,
+  "checks": {
+    "boot-up after NMT reset node": {
+      "ok": true,
+      "detail": ""
+    },
+    "vendor id": {
+      "ok": true,
+      "detail": "0x286"
+    },
+    "product code": {
+      "ok": true,
+      "detail": "1270"
+    },
+    "startup sequence accepted": {
+      "ok": true,
+      "detail": "0 aborts"
+    },
+    "homed": {
+      "ok": true,
+      "detail": ""
+    }
+  },
+  "measurements": {
+    "bootup_after_reset_ms": {
+      "value": 0.2,
+      "unit": "ms"
+    },
+    "first_heartbeat_after_bootup_ms": {
+      "value": null,
+      "unit": "ms"
+    },
+    "revision": {
+      "value": "0x00000000",
+      "unit": ""
+    },
+    "write_2005_in_operation_enabled": {
+      "value": "abort 0x08000022",
+      "unit": ""
+    },
+    "transition_shutdown_ms": {
+      "value": 3.01,
+      "unit": "ms"
+    },
+    "transition_switch_on_ms": {
+      "value": 2.75,
+      "unit": "ms"
+    },
+    "transition_enable_operation_ms": {
+      "value": 5.92,
+      "unit": "ms"
+    },
+    "transition_disable_voltage_ms": {
+      "value": 6.18,
+      "unit": "ms"
+    },
+    "heartbeat_period_mean_ms": {
+      "value": 100.87,
+      "unit": "ms"
+    },
+    "heartbeat_period_max_ms": {
+      "value": 101.62,
+      "unit": "ms"
+    },
+    "tpdo1_period_mean_ms": {
+      "value": 9.998,
+      "unit": "ms"
+    },
+    "tpdo1_period_max_ms": {
+      "value": 15.096,
+      "unit": "ms"
+    },
+    "tpdo1_per_sync": {
+      "value": 1.0,
+      "unit": ""
+    },
+    "hb_loss_to_emcy_8130_ms": {
+      "value": 276.3,
+      "unit": "ms"
+    },
+    "hb_loss_to_nmt_stopped_ms": {
+      "value": 291.9,
+      "unit": "ms"
+    },
+    "statusword_after_hb_loss": {
+      "value": "0x0240",
+      "unit": ""
+    },
+    "pp_setpoint_ack_ms": {
+      "value": 7.4,
+      "unit": "ms"
+    },
+    "pp_move_s": {
+      "value": 2.231,
+      "unit": "s"
+    },
+    "pp_move_theory_s": {
+      "value": 2.25,
+      "unit": "s"
+    },
+    "pv_velocity_mm_s": {
+      "value": -4.007,
+      "unit": "mm/s"
+    },
+    "pv_commanded_mm_s": {
+      "value": -4.0,
+      "unit": "mm/s"
+    },
+    "stallguard_load_moving": {
+      "value": [
+        600,
+        600,
+        600,
+        600,
+        600
+      ],
+      "unit": ""
+    },
+    "stallguard_load_standstill": {
+      "value": [
+        600,
+        600,
+        600
+      ],
+      "unit": ""
+    },
+    "csp_tracking_rms_mm": {
+      "value": 0.1448,
+      "unit": "mm"
+    },
+    "quick_stop_distance_mm": {
+      "value": 0.19,
+      "unit": "mm"
+    },
+    "quick_stop_distance_theory_mm": {
+      "value": 0.16,
+      "unit": "mm"
+    },
+    "homing_s": {
+      "value": 13.09,
+      "unit": "s"
+    },
+    "homing_emcys": {
+      "value": [
+        "0x3230",
+        "0x0000"
+      ],
+      "unit": ""
+    }
+  },
+  "objects": {
+    "1000.0": {
+      "value": 4294902162,
+      "expected": 4294902162
+    },
+    "1008.0": {
+      "value": "error 1008h.0: unsupported data type 0x0009",
+      "expected": null
+    },
+    "1009.0": {
+      "value": "error 1009h.0: unsupported data type 0x0009",
+      "expected": null
+    },
+    "100A.0": {
+      "value": "error 100Ah.0: unsupported data type 0x0009",
+      "expected": null
+    },
+    "1017.0": {
+      "value": 0,
+      "expected": 0
+    },
+    "1018.1": {
+      "value": 646,
+      "expected": 646
+    },
+    "1018.2": {
+      "value": 1270,
+      "expected": 1270
+    },
+    "1018.3": {
+      "value": 0,
+      "expected": null
+    },
+    "1029.1": {
+      "value": 0,
+      "expected": 0
+    },
+    "2000.0": {
+      "value": 8,
+      "expected": 8
+    },
+    "2003.0": {
+      "value": 128,
+      "expected": 128
+    },
+    "2004.0": {
+      "value": 8,
+      "expected": 8
+    },
+    "2005.0": {
+      "value": 0,
+      "expected": 0
+    },
+    "2089.0": {
+      "value": 0,
+      "expected": 0
+    },
+    "208C.0": {
+      "value": 181,
+      "expected": 181
+    },
+    "2093.0": {
+      "value": 0,
+      "expected": 0
+    },
+    "209E.0": {
+      "value": 0,
+      "expected": 0
+    },
+    "20A4.0": {
+      "value": 0,
+      "expected": 0
+    },
+    "20B0.0": {
+      "value": 0,
+      "expected": 0
+    },
+    "2101.0": {
+      "value": 0,
+      "expected": 0
+    },
+    "605A.0": {
+      "value": 2,
+      "expected": 2
+    },
+    "6060.0": {
+      "value": 0,
+      "expected": 0
+    },
+    "6061.0": {
+      "value": 0,
+      "expected": 0
+    },
+    "607C.0": {
+      "value": 0,
+      "expected": 0
+    },
+    "607D.1": {
+      "value": -2147483648,
+      "expected": -2147483648
+    },
+    "607D.2": {
+      "value": 2147483647,
+      "expected": 2147483647
+    },
+    "6081.0": {
+      "value": 0,
+      "expected": 0
+    },
+    "6083.0": {
+      "value": 0,
+      "expected": 0
+    },
+    "6084.0": {
+      "value": 0,
+      "expected": 0
+    },
+    "6085.0": {
+      "value": 51200,
+      "expected": 51200
+    },
+    "6098.0": {
+      "value": 0,
+      "expected": 0
+    },
+    "60C2.1": {
+      "value": 1,
+      "expected": 1
+    },
+    "60C2.2": {
+      "value": -3,
+      "expected": -3
+    },
+    "1400.1": {
+      "value": 1073742337,
+      "expected": null
+    },
+    "1401.1": {
+      "value": 1073742593,
+      "expected": null
+    },
+    "1402.1": {
+      "value": 1073742849,
+      "expected": null
+    },
+    "1403.1": {
+      "value": 1073743105,
+      "expected": null
+    },
+    "1800.1": {
+      "value": 1073742209,
+      "expected": null
+    },
+    "1800.2": {
+      "value": 255,
+      "expected": 255
+    },
+    "1801.1": {
+      "value": 1073742465,
+      "expected": null
+    },
+    "1802.1": {
+      "value": 1073742721,
+      "expected": null
+    },
+    "1803.1": {
+      "value": 1073742977,
+      "expected": null
+    },
+    "1A00.0": {
+      "value": 1,
+      "expected": 1
+    },
+    "1A00.1": {
+      "value": 1614872592,
+      "expected": 1614872592
+    },
+    "1A00.2": {
+      "value": 0,
+      "expected": 0
+    }
+  },
+  "sdo_aborts": [],
+  "emcy": [
+    {
+      "code": "0x8130",
+      "byte1": 0,
+      "class": "stop_all"
+    },
+    {
+      "code": "0x3230",
+      "byte1": 0,
+      "class": "homing_stall"
+    },
+    {
+      "code": "0x0000",
+      "byte1": 0,
+      "class": "info"
+    }
+  ]
+}

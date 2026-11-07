@@ -126,3 +126,24 @@ def test_home_follow_pose_stop_resume_reboot(bench):
     bench.send({"type": "home"})
     bench.wait_phase("homing", 5)
     bench.wait_phase("run", 40)
+
+
+def test_heartbeat_glitch_then_resume_and_enn(bench):
+    bench.wait_phase("run", 30)
+    # Drive heartbeat lost for longer than the master's consumer time: stop, but keep homing (the drive
+    # did not reboot, its step counter is still valid).
+    bench.send({"type": "mute_hb", "node": 24, "s": 0.6}, CONTROL)
+    st = bench.wait_phase("stopped", 2)
+    assert st["homed"] and "heartbeat lost" in st["reason"]
+    time.sleep(1.0)
+    st = bench.status()
+    assert all(l["boot"] == "ready" for l in st["legs"])
+    bench.send({"type": "resume"})
+    bench.wait_phase("run", 3)
+    # ENN (enable input, e.g. e-stop chain) drops on one drive: EMCY 5441h, stop and lose homing.
+    bench.send({"type": "enn", "node": 22, "on": False}, CONTROL)
+    st = bench.wait_phase("fault", 2)
+    assert not st["homed"] and "0x5441" in st["reason"]
+    bench.send({"type": "enn", "node": 22, "on": True}, CONTROL)
+    bench.send({"type": "home"})
+    bench.wait_phase("run", 40)
