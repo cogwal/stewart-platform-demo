@@ -183,6 +183,9 @@ def test_homing_timeout_guarantees_overtravel():
     assert h["timeout_s"] * h["velocity_mm_s"] >= 1.05 * c["actuator"]["stroke_mm"]
     assert h["stop_on_stall_above_mm_s"] < h["velocity_mm_s"], "stallGuard stop must be active at homing speed"
     assert h["method"] == 35
+    lo, hi = c["actuator"]["soft_limits_mm"]
+    assert lo < h["park_mm"] < hi, "park position must be inside the soft limits"
+    assert 0 <= h["load_stall_threshold"] <= 1023  # 2101h range
 
 
 def test_identity_matches_eds():

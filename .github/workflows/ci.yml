@@ -16,9 +16,6 @@ jobs:
       - name: Build dev image
         run: docker compose build dev
 
-      - name: Tests without CAN (contract)
-        run: docker compose run --rm dev pytest
-
       # vcan in CI is optional: if the runner kernel can't provide it, the CAN tests are
       # skipped and run locally instead (Mac: Colima, see scripts/mac/colima-vcan.sh).
       - name: Set up vcan0
@@ -33,6 +30,9 @@ jobs:
             echo "::notice::vcan not available on this runner, skipping CAN tests"
             echo "available=false" >> "$GITHUB_OUTPUT"
           fi
+
+      - name: Tests (contract, drive core; end-to-end on vcan0 when available, otherwise skipped)
+        run: docker compose run --rm dev pytest -rs
 
       - name: CANopenLinux demo check on vcan0
         if: steps.vcan.outputs.available == 'true'

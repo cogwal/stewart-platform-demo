@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>S20 leg · stewart-platform-demo</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #6b7385; --line: #dde1e8;
+    --body: #8a93a6; --rod: #c9ced8; --truth: #e8862a; --target: #2f6fde; --ok: #1f9d55; --bad: #d64545;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #14171d; --panel: #1c2028; --text: #e6e9ef; --muted: #8b93a3; --line: #2c323d;
+            --body: #59627a; --rod: #a7afc0; --truth: #f0a050; --target: #6f9cff; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.45 system-ui, -apple-system, Segoe UI, sans-serif; background: var(--bg); color: var(--text); }
+  main { max-width: 980px; margin: 0 auto; padding: 24px; display: grid; gap: 16px; }
+  h1 { font-size: 18px; margin: 0; font-weight: 600; }
+  .sub { color: var(--muted); font-size: 13px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+  svg { width: 100%; height: auto; display: block; }
+  .controls { display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: center; }
+  input[type=range] { width: 100%; accent-color: var(--target); }
+  .value { font-variant-numeric: tabular-nums; font-size: 22px; font-weight: 600; min-width: 110px; text-align: right; }
+  .buttons { display: flex; gap: 8px; margin-top: 12px; }
+  button { font: inherit; padding: 6px 14px; border-radius: 6px; border: 1px solid var(--line); background: var(--panel); color: var(--text); cursor: pointer; }
+  button:hover { border-color: var(--target); }
+  button.stop { border-color: var(--bad); color: var(--bad); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+  dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 16px; margin: 0; }
+  dt { color: var(--muted); }
+  dd { margin: 0; font-variant-numeric: tabular-nums; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 0 0 10px; font-weight: 600; }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; background: var(--muted); }
+  .dot.ok { background: var(--ok); } .dot.bad { background: var(--bad); }
+  .legend { display: flex; gap: 16px; color: var(--muted); font-size: 12px; margin-top: 6px; flex-wrap: wrap; }
+  .legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; background: var(--c); }
+  ul { margin: 0; padding-left: 18px; } li { font-variant-numeric: tabular-nums; }
+  .muted { color: var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <div>
+    <h1>S20 leg (TMCM-1270, node <span id="node">–</span>)</h1>
+    <div class="sub">Browser → master (UDP) → CANopen on <span id="iface">–</span> → drive emulator → S20 model. Leg position from TPDO1 on the bus.</div>
+  </div>
+
+  <section class="panel">
+    <svg id="leg" viewBox="0 0 900 140" aria-label="S20 actuator">
+      <line x1="20" y1="70" x2="880" y2="70" stroke="var(--line)" stroke-dasharray="4 6"/>
+      <g id="scale"></g>
+      <rect id="rodTruth" x="0" y="58" width="0" height="24" rx="3" fill="none" stroke="var(--truth)" stroke-width="2" stroke-dasharray="5 4"/>
+      <rect id="rod" x="0" y="60" width="0" height="20" rx="3" fill="var(--rod)"/>
+      <circle id="rodEnd" cx="0" cy="70" r="9" fill="var(--rod)" stroke="var(--body)" stroke-width="2"/>
+      <rect id="body" x="20" y="45" width="0" height="50" rx="6" fill="var(--body)"/>
+      <circle cx="30" cy="70" r="7" fill="var(--panel)"/>
+      <line id="targetMark" x1="0" y1="30" x2="0" y2="110" stroke="var(--target)" stroke-width="2"/>
+      <text id="targetLabel" x="0" y="24" font-size="12" fill="var(--target)" text-anchor="middle"></text>
+    </svg>
+    <div class="legend">
+      <span style="--c: var(--rod)">rod, from the bus (drive step counter)</span>
+      <span style="--c: var(--truth)">rod, simulator truth (lost steps show here)</span>
+      <span style="--c: var(--target)">master target</span>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="controls">
+      <input id="slider" type="range" min="0" max="100" step="0.1" value="5">
+      <div class="value"><span id="sliderValue">5.0</span> mm</div>
+    </div>
+    <div class="buttons">
+      <button id="home">Home</button>
+      <button id="resume">Resume</button>
+      <button id="stop" class="stop">Quick stop</button>
+    </div>
+  </section>
+
+  <div class="grid">
+    <section class="panel">
+      <h2>Drive (from the bus)</h2>
+      <dl>
+        <dt>NMT</dt><dd><span id="nmtDot" class="dot"></span><span id="nmt">–</span></dd>
+        <dt>CiA 402 state</dt><dd id="state">–</dd>
+        <dt>Statusword</dt><dd id="sw">–</dd>
+        <dt>Position</dt><dd id="pos">–</dd>
+        <dt>Frames seen</dt><dd id="frames">–</dd>
+      </dl>
+    </section>
+    <section class="panel">
+      <h2>Master</h2>
+      <dl>
+        <dt>Phase</dt><dd id="phase">–</dd>
+        <dt>Homed</dt><dd id="homed">–</dd>
+        <dt>Setpoint</dt><dd id="setpoint">–</dd>
+        <dt>Target</dt><dd id="target">–</dd>
+      </dl>
+    </section>
+    <section class="panel">
+      <h2>Simulator</h2>
+      <dl>
+        <dt>Rod (truth)</dt><dd id="truth">–</dd>
+        <dt>At end stop</dt><dd id="stalled">–</dd>
+      </dl>
+      <h2 style="margin-top:14px">EMCY</h2>
+      <ul id="emcy"><li class="muted">none</li></ul>
+    </section>
+  </div>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+const X0 = 20, PX_PER_MM = 4.2;            // drawing scale
+let cfg = { stroke_mm: 100, soft_limits_mm: [0.5, 99.5], closed_length_mm: 174.8 };
+let ws, sendTimer = null, lastInput = 0;
+
+function bodyWidth() { return (cfg.closed_length_mm - cfg.stroke_mm) * PX_PER_MM * 0.9; }
+function rodTipX(mm) { return X0 + bodyWidth() + Math.max(0, mm) * PX_PER_MM + 20; }
+
+function drawStatic() {
+  $("body").setAttribute("width", bodyWidth());
+  const g = $("scale"); g.innerHTML = "";
+  for (let mm = 0; mm <= cfg.stroke_mm; mm += 10) {
+    const x = rodTipX(mm);
+    g.insertAdjacentHTML("beforeend",
+      `<line x1="${x}" y1="112" x2="${x}" y2="${mm % 50 ? 118 : 122}" stroke="var(--muted)"/>` +
+      `<text x="${x}" y="134" font-size="11" fill="var(--muted)" text-anchor="middle">${mm}</text>`);
+  }
+  const s = $("slider");
+  s.min = cfg.soft_limits_mm[0]; s.max = cfg.soft_limits_mm[1];
+}
+
+function setRod(id, mm) {
+  const x1 = X0 + bodyWidth() - 10, x2 = rodTipX(mm);
+  $(id).setAttribute("x", x1); $(id).setAttribute("width", Math.max(0, x2 - x1));
+}
+
+function fmt(v, unit = " mm", d = 2) { return v == null ? "–" : `${Number(v).toFixed(d)}${unit}`; }
+
+function render(st) {
+  const b = st.bus, m = st.master, t = st.truth;
+  $("nmt").textContent = b.nmt ?? "–";
+  $("nmtDot").className = "dot " + (b.nmt === "operational" ? "ok" : b.nmt === "silent" ? "bad" : "");
+  $("state").textContent = b.state ?? "–";
+  $("sw").textContent = b.statusword ?? "–";
+  $("pos").textContent = fmt(b.position_mm);
+  $("frames").textContent = st.frames;
+  if (b.position_mm != null) { setRod("rod", b.position_mm); $("rodEnd").setAttribute("cx", rodTipX(b.position_mm)); }
+
+  $("phase").textContent = m ? m.phase : "no master status";
+  $("homed").textContent = m ? (m.homed ? "yes" : "no") : "–";
+  $("setpoint").textContent = m ? fmt(m.setpoint_mm) : "–";
+  $("target").textContent = m ? fmt(m.target_mm) : "–";
+  if (m && Date.now() - lastInput > 1000) {  // follow the master (e.g. after Resume or Home)
+    $("slider").value = m.setpoint_mm; $("sliderValue").textContent = m.setpoint_mm.toFixed(1);
+  }
+  if (m) {
+    const x = rodTipX(m.target_mm);
+    $("targetMark").setAttribute("x1", x); $("targetMark").setAttribute("x2", x);
+    $("targetLabel").setAttribute("x", x); $("targetLabel").textContent = `${m.target_mm.toFixed(1)} mm`;
+  }
+  $("truth").textContent = t ? fmt(t.rod_mm) : "–";
+  $("stalled").textContent = t ? (t.stalled ? "yes, skipping steps" : "no") : "–";
+  if (t) setRod("rodTruth", t.rod_mm);
+
+  const emcy = (m && m.emcy && m.emcy.length ? m.emcy : b.emcy) || [];
+  $("emcy").innerHTML = emcy.length
+    ? emcy.slice().reverse().map(e => `<li>${new Date(e.t * 1000).toLocaleTimeString()} ${e.code}/${e.byte1} <span class="muted">${e.class}</span></li>`).join("")
+    : '<li class="muted">none</li>';
+}
+
+function send(obj) { if (ws && ws.readyState === 1) ws.send(JSON.stringify(obj)); }
+
+function connect() {
+  ws = new WebSocket(`ws://${location.host}/ws`);
+  ws.onmessage = ev => {
+    const msg = JSON.parse(ev.data);
+    if (msg.type === "config") { cfg = msg; $("node").textContent = msg.node; $("iface").textContent = msg.iface; drawStatic(); }
+    else if (msg.type === "state") render(msg);
+  };
+  ws.onclose = () => setTimeout(connect, 1000);
+}
+
+$("slider").addEventListener("input", e => {
+  const mm = parseFloat(e.target.value);
+  lastInput = Date.now();
+  $("sliderValue").textContent = mm.toFixed(1);
+  if (!sendTimer) sendTimer = setTimeout(() => { sendTimer = null; send({ type: "setpoint", mm: parseFloat($("slider").value) }); }, 30);
+});
+$("home").onclick = () => send({ type: "home" });
+$("resume").onclick = () => send({ type: "resume" });
+$("stop").onclick = () => send({ type: "stop" });
+
+drawStatic();
+connect();
+</script>
+</body>
+</html>

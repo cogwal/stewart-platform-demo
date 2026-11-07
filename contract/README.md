@@ -88,10 +88,11 @@ state in 6041h, 500 ms max per step. Set the mode (6060h, via RPDO2) before enab
 1. Run current 2003h = 48 (*provisional*). Chopper is spreadCycle, stealthChop off (needed for stallGuard).
 2. pv mode, enable, 60FFh = −4 mm/s (−102,400 PPS, *provisional*) via RPDO3.
 3. The end stop is reached when **any** of these happens: EMCY 3230h (stallGuard stop, active above 2 mm/s, set via 20A4h),
-   or 2101h load ≤ threshold (polled by SDO every 50 ms, not PDO-mappable), or the **30 s timeout** passes
+   or 2101h load ≤ 10 (*provisional*, polled by SDO every 50 ms, not PDO-mappable), or the **30 s timeout** passes
    (blind overtravel: 105 mm at 4 mm/s is guaranteed to be on the stop).
 4. 60FFh = 0, fault reset if the drive faulted, hm mode, start method 35 → position = 0.
-5. 2003h = 88 (run current), csp mode, target = current position, enable. The leg is homed.
+5. 2003h = 88 (run current). The leg is at 0 mm, below the 0.5 mm soft limit, so: pp move to the park position
+   (5 mm), then csp mode with target = current position. The leg is homed.
 
 Needed after power-up, after any drive reboot, and after a stall in normal operation.
 

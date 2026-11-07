@@ -18,6 +18,8 @@ git clone --recurse-submodules https://github.com/cogwal/stewart-platform-demo
 cd stewart-platform-demo
 make vcan        # start Colima if needed, bring up vcan0 in its VM
 make image       # build the dev image
+make test        # contract checks, drive emulator tests, end-to-end tests on vcan0
+make sim         # single-leg simulation: open http://localhost:8080 (slider, Home, Quick stop)
 make s0-check    # run the CANopenLinux demo node on vcan0 and check it with python-canopen
 make shell       # shell in the dev container
 ```

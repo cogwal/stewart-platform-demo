@@ -177,13 +177,24 @@ Each slice ends with something that runs and is demonstrated. **⇉** marks slic
   Found: 2101h (stallGuard load) isn't PDO-mappable, so the master polls it by SDO during homing.
 - Provisional until S5: homing/standby current, profile and csp limits, homing speed, stallGuard threshold.
 
-**S2a ⇉ Drive emulator + slider (first visible milestone)**
-- Emulator: one TMCM-1270 node with NMT, heartbeat, SDO, dynamic PDOs, the CiA 402 state machine, pp and csp, pv plus
-  stall at the end stop (EMCY 3230h), method 35. An S20 model with 0–100 mm travel and an end stop. Drive quirks
-  (2005h only writable in SWITCH_ON_DISABLED, profile values 0 by default, NMT stopped faults the drive).
-- A small **Python test master** (python-canopen) that configures, homes and follows a setpoint.
-- **Browser page:** a slider sends the setpoint to the test master. The leg view reads 6064h from the bus.
-- Done when: on the Mac, moving the slider moves the simulated S20 in the browser, through CANopen on `vcan0`.
+**S2a ⇉ Drive emulator + slider (first visible milestone)** (done, 2026-11-07)
+- `sim/drive/`: TMCM-1270 emulator. `core.py` (no CAN, testable with fake time): CiA 402 state machine; pp, pv, hm (method 35), csp;
+  open-loop step counter coupled to the S20 model (`s20.py`: steps past an end stop are lost); stallGuard with stop-on-stall;
+  firmware quirks (SOD-only objects, PDO remap rules, profile defaults 0, NMT stopped → FAULT). Strict assumptions where the manual
+  is silent, switchable in `Quirks`: unwired switches with 2005h = 0 trip a limit EMCY, a stall faults the drive, targets outside the soft
+  limits are rejected, too-high current gives an overtemp warning. `can_node.py`: NMT with boot-up, heartbeat producer/consumer
+  (1029h), SDO via python-canopen, our own PDO and SYNC handling, EMCY.
+- `sim/master/`: Python test master following the contract: boot, identity check, the 65-write startup sequence, homing (pv into
+  the end stop, stallGuard EMCY/load or timeout, method 35, pp to park), csp at 10 ms with rate limits. UDP operator interface
+  (:5005 commands, :5006 status) that the C master will take over.
+- `sim/web/`: browser view on :8080. The leg position comes from TPDO1 on the bus, plus the simulated rod position from the
+  emulator, so lost steps are visible. Slider, Home, Resume, Quick stop.
+- `make sim` runs all three. Colima forwards :8080 to the Mac automatically. `make test`: 47 tests (contract, 16 core, 3 end-to-end on
+  `vcan0`: home/park/follow, heartbeat loss → drive FAULT, drive reboot detected).
+- Verified in the browser on the Mac: auto-homing (stallGuard), park at 5 mm, slider moves at 10 mm/s, quick stop → switch on
+  disabled, resume, re-home from 52 mm. During homing after a reset the bus shows −11.8 mm while the rod is at 40 mm (open loop).
+- Observed once: both heartbeats lost within 0.7 s (VM pause on the Mac, most likely). A 30 s measurement shows normal jitter is small
+  (heartbeat max 102 ms, SYNC max 12.6 ms). Recovery via Home works. → S4: decide on automatic recovery from a transient loss.
 
 **S2b ⇉ Master v0 (C)**
 - App core on CANopenLinux: boot-up handling, startup SDO list (non-blocking), heartbeat monitoring, CiA 402

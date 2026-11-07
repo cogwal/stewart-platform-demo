@@ -71,8 +71,10 @@ homing:                                 # retract into the end stop, detect stal
   stall_threshold: 0                    # 209Eh, -63..63, lower = more sensitive (tune in S5)
   stop_on_stall_above_mm_s: 2.0         # 20A4h: stallGuard stop active above this speed
   load_poll_ms: 50                      # master polls 2101h (not PDO-mappable) during travel
+  load_stall_threshold: 10              # 2101h <= this while travelling = end stop reached (provisional)
   timeout_s: 30                         # > 105 mm / 4 mm/s: blind overtravel guarantees the stop
   all_legs_together: true
+  park_mm: 5.0                          # after method 35 (leg at 0 mm, below the soft limit): pp move here, then csp
 
 chopper:
   mode: 0                               # 2093h: spreadCycle (needed for stallGuard2)
