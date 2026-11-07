@@ -152,11 +152,18 @@ Each slice ends with something that runs and is demonstrated. **⇉** marks slic
 
 ### Phase 1: Mac, simulation only, single actuator
 
-**S0: Docker dev environment and CAN check**
-- Ubuntu image: can-utils, build tools, CANopenLinux as a pinned submodule, Python env. A `vcan0` setup script.
-- Mac: **Colima** as the Docker runtime (Docker Desktop has no CAN). `vcan0` via `scripts/mac/colima-vcan.sh`, verified with
-  `candump`/`cansend` between two containers. Still to check: a cloud session and GitHub Actions.
-- Done when: the stock CANopenLinux demo heartbeats on `vcan0`, and `candump` plus a python-can script see it, on the Mac and in CI.
+**S0: Docker dev environment and CAN check** (done on the Mac, 2026-11-07)
+- Ubuntu 24.04 image (`docker/Dockerfile`, `compose.yaml`, `.devcontainer/`): can-utils, build tools, Python venv
+  (canopen 2.4.1, python-can 4.6.1, pytest). CANopenLinux pinned as a submodule (`third_party/CANopenLinux` @ `f1348d4`,
+  CANopenNode `ef9ac3a`). The application hooks in `CO_application.h` exist as expected.
+- Mac: **Colima** as the Docker runtime (Docker Desktop has no CAN). `make vcan` runs `scripts/mac/colima-vcan.sh`.
+- `make s0-check`: builds `canopend` out of tree, runs it on `vcan0` as node 4 and checks it with python-canopen:
+  NMT reset → boot-up, SDO upload (1000h, 1018h), SDO download (1017h = 100 ms), NMT start → 10 heartbeats/s in OPERATIONAL. **Passes.**
+- Lesson: on a first run the CANopenNode storage files don't exist yet. That raises EMCY 5000h (non-volatile memory) and blocks
+  NMT start until parameters are saved once (1010h). Our master will need a defined first-boot behavior for this, and so
+  will the ECU port.
+- CI (`.github/workflows/ci.yml`): builds the image and runs the same check if the runner can provide `vcan`. Otherwise it skips the check
+  (optional, by decision).
 
 **S1: Contract v0, single drive**
 - `contract/drive-contract.yaml` + `.md` from the draft above, with node IDs as parameters. EDS and defaults overlay committed.

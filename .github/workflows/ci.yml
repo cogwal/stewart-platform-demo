@@ -1,0 +1,36 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  s0-check:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Build dev image
+        run: docker compose build dev
+
+      # vcan in CI is optional: if the runner kernel can't provide it, the CAN tests are
+      # skipped and run locally instead (Mac: Colima, see scripts/mac/colima-vcan.sh).
+      - name: Set up vcan0
+        id: vcan
+        run: |
+          if sudo modprobe vcan 2>/dev/null || \
+             { sudo apt-get update -qq && sudo apt-get install -y -qq "linux-modules-extra-$(uname -r)" && sudo modprobe vcan; }; then
+            sudo ip link add dev vcan0 type vcan
+            sudo ip link set up vcan0
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::vcan not available on this runner, skipping CAN tests"
+            echo "available=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: CANopenLinux demo check on vcan0
+        if: steps.vcan.outputs.available == 'true'
+        run: docker compose run --rm dev tools/s0_demo_check.sh vcan0

@@ -1,0 +1,18 @@
+# Dev container. Uses the host's network namespace so the CAN interfaces of the
+# Docker host (vcan0, can0) are visible inside. On the Mac the "host" is the Colima VM:
+# run scripts/mac/colima-vcan.sh first.
+services:
+  dev:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    image: stewart-dev:latest
+    network_mode: host
+    volumes:
+      - .:/workspace
+    working_dir: /workspace
+    environment:
+      CAN_IFACE: ${CAN_IFACE:-vcan0}
+    stdin_open: true
+    tty: true
+    command: sleep infinity

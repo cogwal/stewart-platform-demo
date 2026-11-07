@@ -20,3 +20,6 @@ venv/
 
 # Vendor archives (unpacked copies live in vendor/)
 *.zip
+
+# Build output
+build/

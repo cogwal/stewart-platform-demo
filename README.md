@@ -7,3 +7,21 @@ against a simulated platform, so the PC and the ECU can be swapped.
 - [docs/plan.md](docs/plan.md): decisions, architecture, slices, open questions (draft)
 - [docs/hardware-notes.md](docs/hardware-notes.md): facts from the vendor documents and what they mean for the design
 - [vendor/](vendor/): vendor manuals, EDS files and firmware
+
+## Quick start (Mac)
+
+Needs Docker CLI + [Colima](https://github.com/abiosoft/colima) (`brew install colima docker docker-compose`).
+Docker Desktop doesn't work: its kernel has no CAN support.
+
+```bash
+git clone --recurse-submodules https://github.com/cogwal/stewart-platform-demo
+cd stewart-platform-demo
+make vcan        # start Colima if needed, bring up vcan0 in its VM
+make image       # build the dev image
+make s0-check    # run the CANopenLinux demo node on vcan0 and check it with python-canopen
+make shell       # shell in the dev container
+```
+
+On the Ubuntu notebook, skip `make vcan` and create the interface on the host instead
+(`sudo modprobe vcan && sudo ip link add dev vcan0 type vcan && sudo ip link set up vcan0`),
+or use the PCAN adapter with `make s0-check CAN_IFACE=can0`.
