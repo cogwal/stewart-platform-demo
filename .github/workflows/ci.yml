@@ -16,6 +16,9 @@ jobs:
       - name: Build dev image
         run: docker compose build dev
 
+      - name: Tests without CAN (contract)
+        run: docker compose run --rm dev pytest
+
       # vcan in CI is optional: if the runner kernel can't provide it, the CAN tests are
       # skipped and run locally instead (Mac: Colima, see scripts/mac/colima-vcan.sh).
       - name: Set up vcan0

@@ -1,0 +1,48 @@
+# Power-on defaults from the TMCM-1270 CANopen firmware manual (fw 3.26 rev 1.06) for objects
+# whose EDS entry has no DefaultValue. The emulator applies these on top of the EDS so it starts
+# like a real drive. Format: "index[.sub]": value. Section numbers refer to the manual.
+
+"2000": 8             # §4.2.1  microstep resolution 2^8 = 256
+"2001": 200           # §4.2.2  full steps per motor revolution
+"2003": 128           # §4.2.4  run current, 50 % of drive max
+"2004": 8             # §4.2.5  standby current
+"2005": 0             # §4.2.6  limit/home switches enabled
+"2089": 0             # §4.2.15 standby delay (10 ms units)
+"208C": 181           # §4.2.16 velocity dimension: PPS
+"208E": 179           # §4.2.17 acceleration dimension: PPS/s
+"2092": 2             # §4.2.18 chopper blank time
+"2093": 0             # §4.2.19 chopper mode: spreadCycle
+"209E": 0             # §4.2.30 stallGuard2 threshold
+"20A4": 0             # §4.2.33 stop on stall: off
+"20B0": 0             # §4.2.35 stealthChop threshold: off
+"2101": 0             # §4.2.46 actual load value
+"2102": 0             # §4.2.47 driver error flags
+"2704": 1000          # §4.2.56 CAN bit rate (kbit/s)
+"2705": 1             # §4.2.57 node ID
+"605A": 2             # §5.1.1  quick stop option code
+"605B": 0             # §5.1.2  shutdown option code
+"605C": 1             # §5.1.3  disable operation option code
+"605D": 1             # §5.1.4  halt option code
+"605E": 2             # §5.1.5  fault reaction option code
+"6060": 0             # §5.1.6  modes of operation: none
+"6061": 0             # §5.1.7  modes of operation display
+"6065": 0             # §6.1.6  following error window: off
+"6067": 0xFFFFFFFF    # §6.1.7  position window: off
+"6068": 0             # §6.1.8  position window time
+"607A": 0             # §6.1.10 target position
+"607C": 0             # §8.2.4  home offset
+"607D.1": -2147483648 # §6.1.11 min software position limit
+"607D.2": 2147483647  # §6.1.11 max software position limit
+"6081": 0             # §6.1.12 profile velocity
+"6082": 0             # §6.1.13 end velocity
+"6083": 0             # §6.1.14 profile acceleration
+"6084": 0             # §6.1.15 profile deceleration
+"6085": 51200         # §6.1.16 quick stop deceleration
+"6098": 0             # §8.2.5  homing method: none
+"6099.1": 0           # §8.2.6  fast homing speed
+"6099.2": 0           # §8.2.6  slow homing speed
+"609A": 0             # §8.2.7  homing acceleration
+"60F2": 0             # §6.1.17 positioning option code
+"60FF": 0             # §7.1.11 target velocity
+"60C2.1": 1           # §9.1.10 interpolation period value (EDS has it too)
+"60C2.2": -3          # §9.1.10 interpolation period index (EDS stores 0xFD)

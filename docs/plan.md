@@ -165,8 +165,17 @@ Each slice ends with something that runs and is demonstrated. **⇉** marks slic
 - CI (`.github/workflows/ci.yml`): builds the image and runs the same check. **`vcan` works on GitHub's ubuntu-24.04 runners**
   (first run passed 2026-11-07), so CAN tests run in CI on every push. If a runner ever lacks `vcan`, the check is skipped, not failed.
 
-**S1: Contract v0, single drive**
-- `contract/drive-contract.yaml` + `.md` from the draft above, with node IDs as parameters. EDS and defaults overlay committed.
+**S1: Contract v0, single drive** (done, 2026-11-07)
+- [`contract/`](../contract/README.md): `drive-contract.yaml` (bus, heartbeat, units, current, profile, homing, PDO map,
+  CiA 402 codes, EMCY classes), `defaults-overlay.yaml` (manual defaults missing from the EDS), the vendor EDS (unmodified),
+  and a loader that generates the startup sequence per node (`python -m contract 1`: 65 SDO writes, sizes from the EDS).
+- `make test` (also in CI): 28 checks against the EDS, the manual's ranges, the S20 current limit, PDO limits (max 3 entries,
+  mappable, max 8 bytes), COB-ID collisions on a 6-drive bus, bus load (< 30 % for 6 drives), heartbeat margins, csp period and
+  homing timeout. Mutation-checked: deliberate contract errors are caught.
+- Decided here: master node 127, async RPDOs (RPDO1 = controlword + target), TPDO1 = statusword + position on SYNC,
+  TPDO3/4 disabled, run current 2003h = 88, everything written at every boot (only node ID and bit rate stored in the drive).
+  Found: 2101h (stallGuard load) isn't PDO-mappable, so the master polls it by SDO during homing.
+- Provisional until S5: homing/standby current, profile and csp limits, homing speed, stallGuard threshold.
 
 **S2a ⇉ Drive emulator + slider (first visible milestone)**
 - Emulator: one TMCM-1270 node with NMT, heartbeat, SDO, dynamic PDOs, the CiA 402 state machine, pp and csp, pv plus
