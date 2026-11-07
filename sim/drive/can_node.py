@@ -59,6 +59,7 @@ class CanDrive:
         self._hb_last_rx: float | None = None
         self._hb_lost = False
         self._hb_next_tx = 0.0
+        self.mute_heartbeat_until = 0.0  # fault injection: heartbeat frames lost (cable glitch)
         self._running = False
         self._thread: threading.Thread | None = None
         self.powered = False
@@ -168,6 +169,8 @@ class CanDrive:
         if period <= 0 or now < self._hb_next_tx:
             return
         self._hb_next_tx = now + period
+        if now < self.mute_heartbeat_until:
+            return
         self.network.send_message(0x700 + self.node_id, [self.nmt_state])
 
     # --- EMCY -------------------------------------------------------------------------------

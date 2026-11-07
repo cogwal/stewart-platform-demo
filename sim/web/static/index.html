@@ -3,197 +3,397 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>S20 leg · stewart-platform-demo</title>
+<title>Stewart platform · stewart-platform-demo</title>
 <style>
   :root {
-    --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #6b7385; --line: #dde1e8;
-    --body: #8a93a6; --rod: #c9ced8; --truth: #e8862a; --target: #2f6fde; --ok: #1f9d55; --bad: #d64545;
+    --bg: #f5f6f8; --panel: #fff; --text: #1d2330; --muted: #6b7385; --line: #dde1e8;
+    --plate: #b9c0cc; --plate2: #8a93a6; --leg: #59627a; --rod: #a7afc0; --truth: #e8862a; --target: #2f6fde;
+    --ok: #1f9d55; --bad: #d64545; --warn: #c98a00; --grid: #e7eaf0;
   }
   @media (prefers-color-scheme: dark) {
-    :root { --bg: #14171d; --panel: #1c2028; --text: #e6e9ef; --muted: #8b93a3; --line: #2c323d;
-            --body: #59627a; --rod: #a7afc0; --truth: #f0a050; --target: #6f9cff; }
+    :root { --bg: #13161c; --panel: #1b1f27; --text: #e6e9ef; --muted: #8b93a3; --line: #2c323d;
+            --plate: #4b5366; --plate2: #6b7489; --leg: #9aa3b8; --rod: #c9ced8; --truth: #f0a050;
+            --target: #6f9cff; --grid: #232833; }
   }
   * { box-sizing: border-box; }
   body { margin: 0; font: 14px/1.45 system-ui, -apple-system, Segoe UI, sans-serif; background: var(--bg); color: var(--text); }
-  main { max-width: 980px; margin: 0 auto; padding: 24px; display: grid; gap: 16px; }
+  main { max-width: 1320px; margin: 0 auto; padding: 18px; display: grid; gap: 14px; }
+  header { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
   h1 { font-size: 18px; margin: 0; font-weight: 600; }
-  .sub { color: var(--muted); font-size: 13px; }
-  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
-  svg { width: 100%; height: auto; display: block; }
-  .controls { display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: center; }
-  input[type=range] { width: 100%; accent-color: var(--target); }
-  .value { font-variant-numeric: tabular-nums; font-size: 22px; font-weight: 600; min-width: 110px; text-align: right; }
-  .buttons { display: flex; gap: 8px; margin-top: 12px; }
+  .sub { color: var(--muted); font-size: 12.5px; }
+  .badge { padding: 2px 10px; border-radius: 999px; font-size: 12.5px; font-weight: 600; background: var(--line); }
+  .badge.run { background: #1f9d5522; color: var(--ok); } .badge.fault { background: #d6454522; color: var(--bad); }
+  .badge.stopped, .badge.homing, .badge.boot { background: #c98a0022; color: var(--warn); }
+  .top { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(320px, 1fr); gap: 14px; }
+  @media (max-width: 900px) { .top { grid-template-columns: 1fr; } }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
+  h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 0 0 10px; font-weight: 600; }
+  canvas#view { width: 100%; height: 520px; display: block; cursor: grab; touch-action: none; }
+  .legend { display: flex; gap: 14px; color: var(--muted); font-size: 12px; flex-wrap: wrap; margin-top: 6px; }
+  .legend span::before { content: ""; display: inline-block; width: 14px; height: 3px; margin-right: 6px; vertical-align: 3px; background: var(--c); }
+  .reason { margin-top: 4px; font-size: 13px; }
+  .buttons { display: flex; gap: 8px; flex-wrap: wrap; }
   button { font: inherit; padding: 6px 14px; border-radius: 6px; border: 1px solid var(--line); background: var(--panel); color: var(--text); cursor: pointer; }
   button:hover { border-color: var(--target); }
-  button.stop { border-color: var(--bad); color: var(--bad); }
-  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
-  dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 16px; margin: 0; }
-  dt { color: var(--muted); }
-  dd { margin: 0; font-variant-numeric: tabular-nums; }
-  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 0 0 10px; font-weight: 600; }
+  button.stop { border-color: var(--bad); color: var(--bad); font-weight: 600; }
+  button.on { background: var(--target); border-color: var(--target); color: #fff; }
+  .seg { display: flex; border: 1px solid var(--line); border-radius: 7px; overflow: hidden; }
+  .seg button { border: 0; border-radius: 0; flex: 1; padding: 6px 8px; }
+  .seg button + button { border-left: 1px solid var(--line); }
+  .sliders { display: grid; grid-template-columns: 52px 1fr 64px; gap: 6px 10px; align-items: center; margin-top: 10px; }
+  .sliders label { color: var(--muted); font-size: 12.5px; }
+  .sliders output { font-variant-numeric: tabular-nums; text-align: right; font-size: 12.5px; }
+  input[type=range] { width: 100%; accent-color: var(--target); }
+  .pane { display: none; } .pane.show { display: block; }
+  .joy { display: flex; gap: 16px; align-items: center; margin-top: 10px; }
+  canvas#pad { width: 170px; height: 170px; touch-action: none; cursor: crosshair; }
+  .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }
+  table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: 13px; }
+  th { text-align: left; color: var(--muted); font-weight: 500; font-size: 12px; padding: 4px 6px; border-bottom: 1px solid var(--line); }
+  td { padding: 4px 6px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .bar { position: relative; height: 8px; background: var(--grid); border-radius: 4px; min-width: 90px; }
+  .bar i { position: absolute; top: 0; bottom: 0; left: 0; background: var(--leg); border-radius: 4px; }
+  .bar b { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--truth); }
   .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; background: var(--muted); }
-  .dot.ok { background: var(--ok); } .dot.bad { background: var(--bad); }
-  .legend { display: flex; gap: 16px; color: var(--muted); font-size: 12px; margin-top: 6px; flex-wrap: wrap; }
-  .legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; background: var(--c); }
-  ul { margin: 0; padding-left: 18px; } li { font-variant-numeric: tabular-nums; }
-  .muted { color: var(--muted); }
+  .dot.ok { background: var(--ok); } .dot.bad { background: var(--bad); } .dot.warn { background: var(--warn); }
+  .muted { color: var(--muted); } .bad { color: var(--bad); } .warnc { color: var(--warn); }
+  ul { margin: 0; padding-left: 18px; } li { font-variant-numeric: tabular-nums; font-size: 13px; }
+  dl { display: grid; grid-template-columns: max-content 1fr; gap: 3px 14px; margin: 0; font-size: 13px; }
+  dt { color: var(--muted); } dd { margin: 0; font-variant-numeric: tabular-nums; }
+  select { font: inherit; padding: 5px; border-radius: 6px; border: 1px solid var(--line); background: var(--panel); color: var(--text); }
+  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 8px; }
 </style>
 </head>
 <body>
 <main>
-  <div>
-    <h1>S20 leg (TMCM-1270, node <span id="node">–</span>)</h1>
-    <div class="sub">Browser → master (UDP) → CANopen on <span id="iface">–</span> → drive emulator → S20 model. Leg position from TPDO1 on the bus.</div>
+  <header>
+    <h1>Stewart platform</h1>
+    <span id="phase" class="badge">–</span>
+    <span class="sub" id="sub">connecting…</span>
+  </header>
+
+  <div class="top">
+    <section class="panel">
+      <canvas id="view" aria-label="3D view of the platform"></canvas>
+      <div class="legend">
+        <span style="--c: var(--leg)">platform from the bus (drive step counters)</span>
+        <span style="--c: var(--truth)">simulator truth (differs when steps are lost)</span>
+        <span style="--c: var(--target)">master command</span>
+        <span class="muted">drag to orbit, scroll to zoom</span>
+      </div>
+      <div class="reason" id="reason"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Operator</h2>
+      <div class="buttons">
+        <button id="home">Home</button>
+        <button id="resume">Resume</button>
+        <button id="stop" class="stop">Quick stop</button>
+      </div>
+      <h2 style="margin-top:16px">Input</h2>
+      <div class="seg" id="sources"></div>
+
+      <div class="pane" id="pane-pose">
+        <div class="sliders" id="poseSliders"></div>
+        <div class="row"><button id="poseZero">Neutral</button></div>
+      </div>
+      <div class="pane" id="pane-joystick">
+        <div class="joy">
+          <canvas id="pad" width="340" height="340"></canvas>
+          <div class="muted" style="font-size:12.5px">Analog joystick on the ECU, simulated. Drag the knob; it springs back on release.
+            Mapping: x → roll, y → pitch (config/platform.yaml).<br><br><span id="joyVal">x 0.00 · y 0.00</span></div>
+        </div>
+      </div>
+      <div class="pane" id="pane-imu">
+        <div class="sliders" id="imuSliders"></div>
+        <div class="row"><label><input type="checkbox" id="phoneTilt"> use this device's orientation sensor</label></div>
+      </div>
+      <div class="pane" id="pane-demo"><p class="muted">Built-in demo motion (tilt circle with a z wave), as for idle at the fair.</p></div>
+      <div class="pane" id="pane-legs"><div class="sliders" id="legSliders"></div></div>
+    </section>
   </div>
 
-  <section class="panel">
-    <svg id="leg" viewBox="0 0 900 140" aria-label="S20 actuator">
-      <line x1="20" y1="70" x2="880" y2="70" stroke="var(--line)" stroke-dasharray="4 6"/>
-      <g id="scale"></g>
-      <rect id="rodTruth" x="0" y="58" width="0" height="24" rx="3" fill="none" stroke="var(--truth)" stroke-width="2" stroke-dasharray="5 4"/>
-      <rect id="rod" x="0" y="60" width="0" height="20" rx="3" fill="var(--rod)"/>
-      <circle id="rodEnd" cx="0" cy="70" r="9" fill="var(--rod)" stroke="var(--body)" stroke-width="2"/>
-      <rect id="body" x="20" y="45" width="0" height="50" rx="6" fill="var(--body)"/>
-      <circle cx="30" cy="70" r="7" fill="var(--panel)"/>
-      <line id="targetMark" x1="0" y1="30" x2="0" y2="110" stroke="var(--target)" stroke-width="2"/>
-      <text id="targetLabel" x="0" y="24" font-size="12" fill="var(--target)" text-anchor="middle"></text>
-    </svg>
-    <div class="legend">
-      <span style="--c: var(--rod)">rod, from the bus (drive step counter)</span>
-      <span style="--c: var(--truth)">rod, simulator truth (lost steps show here)</span>
-      <span style="--c: var(--target)">master target</span>
-    </div>
-  </section>
-
-  <section class="panel">
-    <div class="controls">
-      <input id="slider" type="range" min="0" max="100" step="0.1" value="5">
-      <div class="value"><span id="sliderValue">5.0</span> mm</div>
-    </div>
-    <div class="buttons">
-      <button id="home">Home</button>
-      <button id="resume">Resume</button>
-      <button id="stop" class="stop">Quick stop</button>
-    </div>
-  </section>
-
-  <div class="grid">
+  <div class="grid2">
+    <section class="panel" style="grid-column: 1 / -1">
+      <h2>Legs</h2>
+      <table>
+        <thead><tr><th>Node</th><th>NMT</th><th>CiA 402</th><th>Master</th><th>Bus mm</th><th>Truth mm</th><th>Lost</th><th>Target</th><th style="width:30%">Stroke</th></tr></thead>
+        <tbody id="legs"></tbody>
+      </table>
+    </section>
     <section class="panel">
-      <h2>Drive (from the bus)</h2>
-      <dl>
-        <dt>NMT</dt><dd><span id="nmtDot" class="dot"></span><span id="nmt">–</span></dd>
-        <dt>CiA 402 state</dt><dd id="state">–</dd>
-        <dt>Statusword</dt><dd id="sw">–</dd>
-        <dt>Position</dt><dd id="pos">–</dd>
-        <dt>Frames seen</dt><dd id="frames">–</dd>
-      </dl>
+      <h2>Fault injection (emulator)</h2>
+      <div class="row">
+        <select id="faultNode"></select>
+        <button data-fault="power_cycle">Power cycle</button>
+        <button data-fault="mute_hb">Mute heartbeat 0.5 s</button>
+      </div>
+      <div class="row">
+        <button data-fault="enn_off">ENN off</button>
+        <button data-fault="enn_on">ENN on</button>
+        <button data-fault="jam">Jam here</button>
+        <button data-fault="unjam">Clear jam</button>
+        <button data-fault="slip">Slip 2 mm</button>
+      </div>
+      <p class="muted" style="font-size:12.5px;margin-bottom:0">These act on the simulated hardware only; the master reacts through the bus like it would on the bench.</p>
     </section>
     <section class="panel">
       <h2>Master</h2>
       <dl>
-        <dt>Phase</dt><dd id="phase">–</dd>
+        <dt>Implementation</dt><dd id="impl">–</dd>
         <dt>Homed</dt><dd id="homed">–</dd>
-        <dt>Setpoint</dt><dd id="setpoint">–</dd>
-        <dt>Target</dt><dd id="target">–</dd>
+        <dt>Input</dt><dd id="input">–</dd>
+        <dt>Pose command</dt><dd id="poseCmd">–</dd>
+        <dt>Pose (bus FK)</dt><dd id="poseBus">–</dd>
+        <dt>Pose (truth FK)</dt><dd id="poseTruth">–</dd>
+        <dt>SYNC period</dt><dd id="sync">–</dd>
+        <dt>Frames seen</dt><dd id="frames">–</dd>
       </dl>
     </section>
     <section class="panel">
-      <h2>Simulator</h2>
-      <dl>
-        <dt>Rod (truth)</dt><dd id="truth">–</dd>
-        <dt>At end stop</dt><dd id="stalled">–</dd>
-      </dl>
-      <h2 style="margin-top:14px">EMCY</h2>
+      <h2>EMCY</h2>
       <ul id="emcy"><li class="muted">none</li></ul>
     </section>
   </div>
 </main>
 
 <script>
+"use strict";
 const $ = id => document.getElementById(id);
-const X0 = 20, PX_PER_MM = 4.2;            // drawing scale
-let cfg = { stroke_mm: 100, soft_limits_mm: [0.5, 99.5], closed_length_mm: 174.8 };
-let ws, sendTimer = null, lastInput = 0;
+let cfg = null, st = null, ws = null;
+const AXES = [["x", "mm"], ["y", "mm"], ["z", "mm"], ["roll", "°"], ["pitch", "°"], ["yaw", "°"]];
+const SOURCES = ["pose", "joystick", "imu", "demo", "legs"];
+let source = "pose", lastSourceClick = 0;
+const pose = [0, 0, 0, 0, 0, 0], imu = [0, 0, 0], joy = [0, 0];
+let legs = [50, 50, 50, 50, 50, 50];
 
-function bodyWidth() { return (cfg.closed_length_mm - cfg.stroke_mm) * PX_PER_MM * 0.9; }
-function rodTipX(mm) { return X0 + bodyWidth() + Math.max(0, mm) * PX_PER_MM + 20; }
+function send(o) { if (ws && ws.readyState === 1) ws.send(JSON.stringify(o)); }
+function throttle(fn, ms) { let t = null, pending = false; return () => { if (t) { pending = true; return; } fn(); t = setTimeout(() => { t = null; if (pending) { pending = false; fn(); } }, ms); }; }
+const fmt = (v, d = 2) => v == null ? "–" : Number(v).toFixed(d);
+const fmtPose = p => p ? p.map((v, i) => fmt(v, i < 3 ? 1 : 1)).join(" · ") : "–";
 
-function drawStatic() {
-  $("body").setAttribute("width", bodyWidth());
-  const g = $("scale"); g.innerHTML = "";
-  for (let mm = 0; mm <= cfg.stroke_mm; mm += 10) {
-    const x = rodTipX(mm);
-    g.insertAdjacentHTML("beforeend",
-      `<line x1="${x}" y1="112" x2="${x}" y2="${mm % 50 ? 118 : 122}" stroke="var(--muted)"/>` +
-      `<text x="${x}" y="134" font-size="11" fill="var(--muted)" text-anchor="middle">${mm}</text>`);
+/* ---------- 3D ---------- */
+const view = $("view"), ctx = view.getContext("2d");
+let az = -35, el = 22, zoom = 1.5;
+function css(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+function rot(roll, pitch, yaw) {
+  const r = roll * Math.PI / 180, p = pitch * Math.PI / 180, y = yaw * Math.PI / 180;
+  const cr = Math.cos(r), sr = Math.sin(r), cp = Math.cos(p), sp = Math.sin(p), cy = Math.cos(y), sy = Math.sin(y);
+  return [[cy*cp, cy*sp*sr - sy*cr, cy*sp*cr + sy*sr], [sy*cp, sy*sp*sr + cy*cr, sy*sp*cr - cy*sr], [-sp, cp*sr, cp*cr]];
+}
+function platformPoints(p) {
+  const R = rot(p[3], p[4], p[5]), t = [p[0], p[1], p[2] + cfg.neutral_z_mm];
+  return cfg.platform.map(q => [0, 1, 2].map(k => t[k] + R[k][0]*q[0] + R[k][1]*q[1] + R[k][2]*q[2]));
+}
+function projector() {
+  const w = view.clientWidth, h = view.clientHeight, f = Math.min(w, h) * 1.25 * zoom;
+  const a = az * Math.PI / 180, e = el * Math.PI / 180, cz = cfg.neutral_z_mm * 0.5, dist = 700;
+  return p => {
+    let x = p[0], y = p[1], z = p[2] - cz;
+    const x1 = x * Math.cos(a) - y * Math.sin(a), y1 = x * Math.sin(a) + y * Math.cos(a);
+    const y2 = y1 * Math.cos(e) - z * Math.sin(e), z2 = y1 * Math.sin(e) + z * Math.cos(e);
+    const s = f / (dist + y2);
+    return [w / 2 + x1 * s, h * 0.55 - z2 * s, y2];
+  };
+}
+function byAngle(pts) { return pts.slice().sort((a, b) => Math.atan2(a[1], a[0]) - Math.atan2(b[1], b[0])); }
+function poly(P, pts, fill, stroke, dash, width) {
+  ctx.beginPath(); pts.forEach((p, i) => { const q = P(p); i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1]); }); ctx.closePath();
+  if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+  if (stroke) { ctx.setLineDash(dash || []); ctx.strokeStyle = stroke; ctx.lineWidth = width || 1.5; ctx.stroke(); ctx.setLineDash([]); }
+}
+function line(P, a, b, color, width, dash) {
+  const p = P(a), q = P(b); ctx.beginPath(); ctx.moveTo(p[0], p[1]); ctx.lineTo(q[0], q[1]);
+  ctx.setLineDash(dash || []); ctx.strokeStyle = color; ctx.lineWidth = width; ctx.lineCap = "round"; ctx.stroke(); ctx.setLineDash([]);
+}
+function draw() {
+  requestAnimationFrame(draw);
+  const dpr = window.devicePixelRatio || 1, w = view.clientWidth, h = view.clientHeight;
+  if (view.width !== w * dpr || view.height !== h * dpr) { view.width = w * dpr; view.height = h * dpr; }
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, w, h);
+  if (!cfg) return;
+  const P = projector();
+  if (cfg.nodes.length !== 6) { drawSingle(w, h); return; }
+  // floor rings
+  for (let r = 60; r <= 180; r += 60) {
+    const ring = []; for (let k = 0; k < 48; k++) ring.push([r * Math.cos(k / 48 * 2 * Math.PI), r * Math.sin(k / 48 * 2 * Math.PI), 0]);
+    poly(P, ring, null, css("--grid"), null, 1);
   }
-  const s = $("slider");
-  s.min = cfg.soft_limits_mm[0]; s.max = cfg.soft_limits_mm[1];
+  line(P, [0, 0, 0], [60, 0, 0], "#d64545", 2); line(P, [0, 0, 0], [0, 60, 0], "#1f9d55", 2); line(P, [0, 0, 0], [0, 0, 60], "#2f6fde", 2);
+  poly(P, byAngle(cfg.base).map(b => [b[0] * 1.15, b[1] * 1.15, -4]), css("--plate"), css("--plate2"));
+  const busPose = st && st.pose_bus;
+  const truthPose = st && st.pose_truth;
+  const cmd = st && st.master && st.master.pose;
+  const shown = busPose || [0, 0, 0, 0, 0, 0];
+  const top = platformPoints(shown);
+  const legState = st ? st.drives : [];
+  // legs: body (closed part) thick, rod thin
+  cfg.base.forEach((b, i) => {
+    const t = top[i], d = [t[0]-b[0], t[1]-b[1], t[2]-b[2]], L = Math.hypot(...d);
+    const bodyLen = Math.min(L, cfg.closed_length_mm * 0.72), m = [b[0] + d[0]*bodyLen/L, b[1] + d[1]*bodyLen/L, b[2] + d[2]*bodyLen/L];
+    const s = legState[i] || {}, bad = s.state === "fault" || s.nmt === "silent";
+    line(P, m, t, css("--rod"), 4);
+    line(P, b, m, bad ? css("--bad") : css("--leg"), 9);
+  });
+  if (cmd) poly(P, byAngle(platformPoints(cmd)), null, css("--target"), [3, 4], 1.5);
+  poly(P, byAngle(top), css("--plate") + "cc", css("--plate2"), null, 2);
+  // platform normal
+  const R = rot(shown[3], shown[4], shown[5]), c0 = [shown[0], shown[1], shown[2] + cfg.neutral_z_mm];
+  line(P, c0, [c0[0] + R[0][2]*40, c0[1] + R[1][2]*40, c0[2] + R[2][2]*40], css("--target"), 2);
+  if (truthPose) {
+    const diff = truthPose.some((v, k) => Math.abs(v - shown[k]) > 0.3);
+    poly(P, byAngle(platformPoints(truthPose)), null, css("--truth"), diff ? [6, 4] : [2, 6], diff ? 2.5 : 1.2);
+  }
+  if (!busPose) { ctx.fillStyle = css("--muted"); ctx.font = "13px system-ui"; ctx.fillText("no leg positions from the bus yet: showing neutral", 12, 20); }
 }
-
-function setRod(id, mm) {
-  const x1 = X0 + bodyWidth() - 10, x2 = rodTipX(mm);
-  $(id).setAttribute("x", x1); $(id).setAttribute("width", Math.max(0, x2 - x1));
+function drawSingle(w, h) {
+  const s = st && st.drives[0], x0 = 40, x1 = w - 40, y = h / 2, k = (x1 - x0) / cfg.stroke_mm;
+  ctx.fillStyle = css("--grid"); ctx.fillRect(x0, y - 14, x1 - x0, 28);
+  if (s && s.position_mm != null) { ctx.fillStyle = css("--leg"); ctx.fillRect(x0, y - 10, s.position_mm * k, 20); }
+  if (s && s.truth_mm != null) { ctx.strokeStyle = css("--truth"); ctx.lineWidth = 2; ctx.strokeRect(x0, y - 16, s.truth_mm * k, 32); }
+  ctx.fillStyle = css("--muted"); ctx.font = "12px system-ui";
+  for (let mm = 0; mm <= cfg.stroke_mm; mm += 10) ctx.fillText(mm, x0 + mm * k - 6, y + 34);
+  ctx.fillText("single leg: stroke in mm", x0, y - 26);
 }
+let drag = null;
+view.addEventListener("pointerdown", e => { drag = [e.clientX, e.clientY, az, el]; view.setPointerCapture(e.pointerId); });
+view.addEventListener("pointermove", e => { if (!drag) return; az = drag[2] - (e.clientX - drag[0]) * 0.4; el = Math.max(-5, Math.min(85, drag[3] + (e.clientY - drag[1]) * 0.3)); });
+view.addEventListener("pointerup", () => { drag = null; });
+view.addEventListener("wheel", e => { e.preventDefault(); zoom = Math.max(0.4, Math.min(3, zoom * (e.deltaY > 0 ? 0.92 : 1.08))); }, { passive: false });
 
-function fmt(v, unit = " mm", d = 2) { return v == null ? "–" : `${Number(v).toFixed(d)}${unit}`; }
+/* ---------- controls ---------- */
+function sliderRow(parent, label, min, max, step, value, unit, oninput) {
+  const id = "s" + Math.random().toString(36).slice(2);
+  parent.insertAdjacentHTML("beforeend", `<label for="${id}">${label}</label><input id="${id}" type="range" min="${min}" max="${max}" step="${step}" value="${value}"><output id="${id}o">${Number(value).toFixed(1)} ${unit}</output>`);
+  const el = $(id), out = $(id + "o");
+  el.addEventListener("input", () => { out.textContent = `${Number(el.value).toFixed(1)} ${unit}`; oninput(Number(el.value)); });
+  return { el, set(v) { el.value = v; out.textContent = `${Number(v).toFixed(1)} ${unit}`; } };
+}
+const sendPose = throttle(() => send({ type: "pose", x: pose[0], y: pose[1], z: pose[2], roll: pose[3], pitch: pose[4], yaw: pose[5] }), 50);
+const sendImu = throttle(() => send({ type: "imu", roll: imu[0], pitch: imu[1], yaw: imu[2] }), 50);
+const sendJoy = throttle(() => send({ type: "joystick", x: joy[0], y: joy[1] }), 40);
+const sendLegs = throttle(() => cfg && cfg.nodes.length === 1 ? send({ type: "setpoint", mm: legs[0] }) : send({ type: "legs", mm: legs }), 50);
+let poseRows = [], imuRows = [];
 
-function render(st) {
-  const b = st.bus, m = st.master, t = st.truth;
-  $("nmt").textContent = b.nmt ?? "–";
-  $("nmtDot").className = "dot " + (b.nmt === "operational" ? "ok" : b.nmt === "silent" ? "bad" : "");
-  $("state").textContent = b.state ?? "–";
-  $("sw").textContent = b.statusword ?? "–";
-  $("pos").textContent = fmt(b.position_mm);
-  $("frames").textContent = st.frames;
-  if (b.position_mm != null) { setRod("rod", b.position_mm); $("rodEnd").setAttribute("cx", rodTipX(b.position_mm)); }
+function setSource(s, user) {
+  source = s;
+  [...$("sources").children].forEach(b => b.classList.toggle("on", b.dataset.s === s));
+  SOURCES.forEach(n => $("pane-" + n).classList.toggle("show", n === s));
+  if (user) { lastSourceClick = Date.now(); if (cfg && cfg.nodes.length === 1) { if (s === "legs") sendLegs(); } else send({ type: "source", source: s }); }
+}
+function buildControls() {
+  $("sources").innerHTML = "";
+  const avail = cfg.nodes.length === 6 ? SOURCES : ["legs"];
+  avail.forEach(s => { const b = document.createElement("button"); b.textContent = s; b.dataset.s = s; b.onclick = () => setSource(s, true); $("sources").appendChild(b); });
+  $("poseSliders").innerHTML = ""; poseRows = AXES.map(([a, u], k) => {
+    const lim = cfg.limits[a + (k < 3 ? "_mm" : "_deg")];
+    return sliderRow($("poseSliders"), a, -lim, lim, 0.1, 0, u, v => { pose[k] = v; sendPose(); });
+  });
+  $("imuSliders").innerHTML = ""; imuRows = ["roll", "pitch", "yaw"].map((a, k) => sliderRow($("imuSliders"), a, -30, 30, 0.1, 0, "°", v => { imu[k] = v; sendImu(); }));
+  $("legSliders").innerHTML = "";
+  cfg.nodes.forEach((n, i) => sliderRow($("legSliders"), `node ${n}`, cfg.soft_limits_mm[0], cfg.soft_limits_mm[1], 0.1, legs[i], "mm", v => { legs[i] = v; sendLegs(); }));
+  $("faultNode").innerHTML = `<option value="0">all drives</option>` + cfg.nodes.map(n => `<option value="${n}">node ${n}</option>`).join("");
+  setSource(cfg.nodes.length === 6 ? "pose" : "legs", false);
+}
+$("poseZero").onclick = () => { pose.fill(0); poseRows.forEach(r => r.set(0)); sendPose(); };
+$("home").onclick = () => send({ type: "home" });
+$("resume").onclick = () => send({ type: "resume" });
+$("stop").onclick = () => send({ type: "stop" });
 
-  $("phase").textContent = m ? m.phase : "no master status";
+// joystick pad
+const pad = $("pad"), pctx = pad.getContext("2d");
+function drawPad() {
+  const w = pad.width, r = w / 2 - 14; pctx.clearRect(0, 0, w, w);
+  pctx.beginPath(); pctx.arc(w/2, w/2, r, 0, 7); pctx.fillStyle = css("--grid"); pctx.fill(); pctx.strokeStyle = css("--line"); pctx.lineWidth = 2; pctx.stroke();
+  pctx.beginPath(); pctx.moveTo(w/2 - r, w/2); pctx.lineTo(w/2 + r, w/2); pctx.moveTo(w/2, w/2 - r); pctx.lineTo(w/2, w/2 + r); pctx.stroke();
+  pctx.beginPath(); pctx.arc(w/2 + joy[0] * r, w/2 - joy[1] * r, 26, 0, 7); pctx.fillStyle = css("--target"); pctx.fill();
+  $("joyVal").textContent = `x ${joy[0].toFixed(2)} · y ${joy[1].toFixed(2)}`;
+}
+let padDrag = false;
+function padMove(e) {
+  const b = pad.getBoundingClientRect(), r = b.width / 2 - 7;
+  let x = (e.clientX - b.left - b.width / 2) / r, y = -(e.clientY - b.top - b.height / 2) / r;
+  const m = Math.hypot(x, y); if (m > 1) { x /= m; y /= m; }
+  joy[0] = x; joy[1] = y; drawPad(); sendJoy();
+}
+pad.addEventListener("pointerdown", e => { padDrag = true; pad.setPointerCapture(e.pointerId); padMove(e); });
+pad.addEventListener("pointermove", e => { if (padDrag) padMove(e); });
+pad.addEventListener("pointerup", () => { padDrag = false; joy[0] = joy[1] = 0; drawPad(); sendJoy(); });
+
+// phone / tablet orientation as IMU
+$("phoneTilt").addEventListener("change", async e => {
+  if (!e.target.checked) return;
+  if (typeof DeviceOrientationEvent !== "undefined" && DeviceOrientationEvent.requestPermission) {
+    try { await DeviceOrientationEvent.requestPermission(); } catch (_) { e.target.checked = false; }
+  }
+});
+window.addEventListener("deviceorientation", e => {
+  if (!$("phoneTilt").checked || e.beta == null) return;
+  imu[0] = e.gamma; imu[1] = e.beta; imu[2] = 0; imuRows.forEach((r, k) => r.set(imu[k])); sendImu();
+});
+
+// fault injection
+document.querySelectorAll("[data-fault]").forEach(b => b.onclick = () => {
+  const node = Number($("faultNode").value), f = b.dataset.fault;
+  const msg = { type: "fault", node };
+  if (f === "enn_off" || f === "enn_on") Object.assign(msg, { fault: "enn", on: f === "enn_on" });
+  else if (f === "jam" || f === "unjam") {
+    const d = st && st.drives.find(x => x.node === node);
+    Object.assign(msg, { fault: "jam", mm: f === "jam" ? (d && d.truth_mm != null ? d.truth_mm : 50) : null });
+  } else if (f === "mute_hb") Object.assign(msg, { fault: "mute_hb", s: 0.5 });
+  else if (f === "slip") Object.assign(msg, { fault: "slip", mm: -2 });
+  else msg.fault = f;
+  send(msg);
+});
+
+/* ---------- state ---------- */
+function render() {
+  const m = st.master;
+  const phase = m ? m.phase : "no master";
+  $("phase").textContent = phase.split(":")[0]; $("phase").className = "badge " + (phase.split(":")[0].split(" ")[0]);
+  $("reason").textContent = m ? (m.reason || m.phase || "") : "no status from the master (UDP :5006)";
+  $("sub").textContent = `${cfg.iface} · nodes ${cfg.nodes.join(",")} · contract ${cfg.contract_version} · geometry ${cfg.geometry_version}`;
+  $("impl").textContent = m ? (m.impl === "c" ? "C core on CANopenNode (spmaster)" : "Python test master") : "–";
   $("homed").textContent = m ? (m.homed ? "yes" : "no") : "–";
-  $("setpoint").textContent = m ? fmt(m.setpoint_mm) : "–";
-  $("target").textContent = m ? fmt(m.target_mm) : "–";
-  if (m && Date.now() - lastInput > 1000) {  // follow the master (e.g. after Resume or Home)
-    $("slider").value = m.setpoint_mm; $("sliderValue").textContent = m.setpoint_mm.toFixed(1);
-  }
-  if (m) {
-    const x = rodTipX(m.target_mm);
-    $("targetMark").setAttribute("x1", x); $("targetMark").setAttribute("x2", x);
-    $("targetLabel").setAttribute("x", x); $("targetLabel").textContent = `${m.target_mm.toFixed(1)} mm`;
-  }
-  $("truth").textContent = t ? fmt(t.rod_mm) : "–";
-  $("stalled").textContent = t ? (t.stalled ? "yes, skipping steps" : "no") : "–";
-  if (t) setRod("rodTruth", t.rod_mm);
+  $("input").textContent = m && m.input ? m.input + (m.demo ? " (demo running)" : "") : "–";
+  $("poseCmd").textContent = fmtPose(m && m.pose);
+  $("poseBus").textContent = fmtPose(st.pose_bus);
+  $("poseTruth").textContent = fmtPose(st.pose_truth);
+  $("sync").textContent = st.sync_ms ? `${st.sync_ms} ms` : "no SYNC";
+  $("frames").textContent = st.frames;
+  if (m && m.input && Date.now() - lastSourceClick > 1500 && m.input !== source && SOURCES.includes(m.input)) setSource(m.input, false);
 
-  const emcy = (m && m.emcy && m.emcy.length ? m.emcy : b.emcy) || [];
-  $("emcy").innerHTML = emcy.length
-    ? emcy.slice().reverse().map(e => `<li>${new Date(e.t * 1000).toLocaleTimeString()} ${e.code}/${e.byte1} <span class="muted">${e.class}</span></li>`).join("")
+  const mlegs = (m && m.legs) || [];
+  $("legs").innerHTML = st.drives.map((d, i) => {
+    const ml = mlegs.find(x => x.node === d.node) || (cfg.nodes.length === 1 && m ? { target_mm: m.target_mm, boot: m.homed ? "homed" : "" } : {});
+    const nmtCls = d.nmt === "operational" ? "ok" : d.nmt === "silent" ? "bad" : "warn";
+    const lost = d.truth_mm != null && d.position_mm != null ? d.position_mm - d.truth_mm : null;
+    const pct = v => v == null ? 0 : Math.max(0, Math.min(100, v / cfg.stroke_mm * 100));
+    return `<tr><td>${d.node}</td><td><span class="dot ${nmtCls}"></span>${d.nmt ?? "–"}</td>
+      <td class="${d.state === "fault" ? "bad" : ""}">${d.state ?? "–"}</td><td class="muted">${ml.boot ?? "–"}</td>
+      <td>${fmt(d.position_mm)}</td><td>${fmt(d.truth_mm)}${d.stalled ? ' <span class="warnc">stall</span>' : ""}</td>
+      <td class="${lost != null && Math.abs(lost) > 0.2 ? "bad" : "muted"}">${lost == null ? "–" : lost.toFixed(2)}</td>
+      <td>${fmt(ml.x_mm ?? ml.target_mm)}</td>
+      <td><div class="bar"><i style="width:${pct(d.position_mm)}%"></i>${d.truth_mm != null ? `<b style="left:${pct(d.truth_mm)}%"></b>` : ""}</div></td></tr>`;
+  }).join("");
+
+  const emcy = (st.emcy || []).slice().reverse();
+  $("emcy").innerHTML = emcy.length ? emcy.map(e => `<li>${new Date(e.t * 1000).toLocaleTimeString()} node ${e.node} ${e.code}/${e.byte1} <span class="muted">${e.class}</span></li>`).join("")
     : '<li class="muted">none</li>';
 }
-
-function send(obj) { if (ws && ws.readyState === 1) ws.send(JSON.stringify(obj)); }
 
 function connect() {
   ws = new WebSocket(`ws://${location.host}/ws`);
   ws.onmessage = ev => {
     const msg = JSON.parse(ev.data);
-    if (msg.type === "config") { cfg = msg; $("node").textContent = msg.node; $("iface").textContent = msg.iface; drawStatic(); }
-    else if (msg.type === "state") render(msg);
+    if (msg.type === "config") { cfg = msg; buildControls(); drawPad(); }
+    else if (msg.type === "state" && cfg) { st = msg; render(); }
   };
   ws.onclose = () => setTimeout(connect, 1000);
 }
-
-$("slider").addEventListener("input", e => {
-  const mm = parseFloat(e.target.value);
-  lastInput = Date.now();
-  $("sliderValue").textContent = mm.toFixed(1);
-  if (!sendTimer) sendTimer = setTimeout(() => { sendTimer = null; send({ type: "setpoint", mm: parseFloat($("slider").value) }); }, 30);
-});
-$("home").onclick = () => send({ type: "home" });
-$("resume").onclick = () => send({ type: "resume" });
-$("stop").onclick = () => send({ type: "stop" });
-
-drawStatic();
+drawPad();
+requestAnimationFrame(draw);
 connect();
 </script>
 </body>

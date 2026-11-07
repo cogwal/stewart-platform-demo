@@ -19,7 +19,7 @@ device:
 bus:
   bitrate: 1000000
   master_node_id: 127
-  drive_node_ids: [1]                   # v0: one drive. Later: [1, 2, 3, 4, 5, 6]
+  drive_node_ids: [1, 2, 3, 4, 5, 6]     # leg i = drive_node_ids[i] (config/platform.yaml)
   sync:
     cob_id: 0x80
     period_ms: 10                       # = csp cycle; drives' 60C2h is set to match
