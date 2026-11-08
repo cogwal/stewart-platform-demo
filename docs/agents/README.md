@@ -3,7 +3,7 @@
 Each file here is a self-contained brief for one piece of work that can't be done (or finished) without
 hardware, files or decisions that weren't available yet. Start a new session with: *"Read
 docs/agents/<file>.md and do it."* Each brief lists what is already in place, what to do, how to check it,
-and what not to break.
+and what not to break. For the big picture first, see [../architecture.md](../architecture.md).
 
 | File | Work | Blocked on |
 |---|---|---|

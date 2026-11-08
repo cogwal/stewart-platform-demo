@@ -4,6 +4,7 @@ Fair demo: a small Stewart platform (6 × Actuonix S20 linear steppers on Trinam
 CANopen drives) controlled by a TTControl TTC2000 ECU. The same CANopen master (C on CANopenNode) also
 runs on a PC against six emulated drives, so the PC and the ECU can be swapped on the bus.
 
+- [docs/architecture.md](docs/architecture.md): diagrams of the system and the C master layers
 - [docs/plan.md](docs/plan.md): decisions, architecture, slices and their status, open questions
 - [docs/commissioning.md](docs/commissioning.md): bringing up the real drives, measuring, feeding results back
 - [docs/agents/](docs/agents/README.md): briefs for the work that waits on hardware or files (ECU port, CAD, sim tuning, bench, fair)

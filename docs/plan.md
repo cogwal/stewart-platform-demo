@@ -30,6 +30,8 @@ Hardware facts and their sources: [hardware-notes.md](hardware-notes.md).
 
 ## Architecture: what is shared and what is per platform
 
+This is the original sketch. The current picture, as built, is in [architecture.md](architecture.md).
+
 ```
             ┌───────────────────────── master (C) ─────────────────────────┐
             │  app core (portable, shared PC + ECU)                        │
